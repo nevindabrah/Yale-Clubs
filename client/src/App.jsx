@@ -3,14 +3,17 @@ import TopNav from './components/TopNav';
 import { useAuth } from './context/AuthContext';
 import { Loading } from './components/ui';
 
+import ClubWiz from './components/ClubWiz';
 import Landing from './pages/Landing';
 import About from './pages/About';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import CasCallback from './pages/CasCallback';
 import Catalog from './pages/Catalog';
 import ClubDetailPage from './pages/ClubDetailPage';
 import Profile from './pages/Profile';
 
+import Dashboard from './pages/student/Dashboard';
 import MyClubs from './pages/student/MyClubs';
 import MyApplications from './pages/student/MyApplications';
 import MyCalendar from './pages/student/MyCalendar';
@@ -43,19 +46,21 @@ export default function App() {
           path="/"
           element={
             loading ? <Loading /> :
-            user ? <Navigate to={user.account_type === 'officer' ? '/officer' : '/catalog'} replace /> :
+            user ? <Navigate to={user.account_type === 'officer' ? '/officer' : '/dashboard'} replace /> :
             <Landing />
           }
         />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/auth/cas" element={<CasCallback />} />
 
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/club/:slug" element={<ClubDetailPage />} />
 
         <Route path="/profile" element={<Protected><Profile /></Protected>} />
 
+        <Route path="/dashboard" element={<Protected portal="student"><Dashboard /></Protected>} />
         <Route path="/my/clubs" element={<Protected portal="student"><MyClubs /></Protected>} />
         <Route path="/my/applications" element={<Protected portal="student"><MyApplications /></Protected>} />
         <Route path="/my/calendar" element={<Protected portal="student"><MyCalendar /></Protected>} />
@@ -67,6 +72,7 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <ClubWiz />
     </>
   );
 }

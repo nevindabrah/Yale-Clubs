@@ -103,9 +103,64 @@ const cal = await call('/student/calendar?days=90', { token: stu });
 check('calendar includes club events', cal.data.events.length > 0);
 await call(`/officer/events/${created.data.event.id}`, { token: off, method: 'DELETE' });
 
-console.log('\n8. Withdraw');
-const outdoorsApp = await call('/student/dashboard', { token: stu });
-check('dashboard lists the accepted application', outdoorsApp.data.applications.length >= 1);
+console.log('\n8. Student dashboard');
+const dash2 = await call('/student/dashboard', { token: stu });
+check('dashboard lists the accepted application', dash2.data.applications.length >= 1);
+check('dashboard returns deadlines', Array.isArray(dash2.data.deadlines));
+check('dashboard returns recommendations', Array.isArray(dash2.data.recommended));
+check('recommendations exclude clubs already joined',
+  dash2.data.recommended.every((c) => !dash2.data.memberships.some((m) => m.slug === c.slug)));
+check('memberships carry commitment hours for the load estimate',
+  dash2.data.memberships.every((m) => m.commitment_hours != null));
+
+console.log('\n9. ClubWiz');
+const status = await call('/clubwiz/status', { token: stu });
+check('status reports a mode', ['live', 'offline'].includes(status.data.mode));
+const ask = (text, token) => call('/clubwiz', { token, method: 'POST', body: { messages: [{ role: 'user', content: text }] } });
+
+const wiz1 = await ask('What deadlines are coming up?', stu);
+check('answers a deadline question', wiz1.status === 200 && wiz1.data.reply.length > 20, JSON.stringify(wiz1.data).slice(0, 200));
+check('reports which tools it used', Array.isArray(wiz1.data.tools_used) && wiz1.data.tools_used.length > 0);
+
+const wiz2 = await ask('Tell me about the Whiffenpoofs', stu);
+check('answers a named-club question from the catalog', /Whiffenpoof/i.test(wiz2.data.reply));
+
+const wiz3 = await ask('What should I join if I like a cappella?', stu);
+check('recommends from the real catalog', wiz3.data.reply.length > 30);
+
+const wiz4 = await ask("What's on my calendar this week?", stu);
+check('reads the student schedule', wiz4.status === 200);
+
+const wizOff = await ask('How many applications am I sitting on?', off);
+check('officer gets an officer-scoped answer', wizOff.status === 200 && wizOff.data.reply.length > 10);
+
+check('rejects an empty conversation',
+  (await call('/clubwiz', { token: stu, method: 'POST', body: { messages: [] } })).status === 400);
+check('requires authentication', (await call('/clubwiz', { method: 'POST', body: { messages: [{ role: 'user', content: 'hi' }] } })).status === 401);
+
+console.log('\n10. Yale CAS');
+const casStatus = await call('/auth/cas/status');
+check('CAS status advertises a mode', ['mock', 'yale'].includes(casStatus.data.mode));
+
+// Follow the mock handshake the way a browser would, without following redirects.
+const casLogin = await fetch(`${BASE}/auth/cas/login?portal=student`, { redirect: 'manual' });
+check('login endpoint redirects', casLogin.status === 302 || casLogin.status === 301);
+
+const netid = `zzt${stamp % 1000}`;
+const cb = await fetch(
+  `${BASE}/auth/cas/callback?portal=student&ticket=ST-mock&mock_netid=${netid}`,
+  { redirect: 'manual' }
+);
+const loc = cb.headers.get('location') || '';
+check('callback redirects back to the client with a token', /\/auth\/cas\?/.test(loc) && /token=/.test(loc));
+const casToken = new URL(loc).searchParams.get('token');
+const casMe = await call('/auth/me', { token: casToken });
+check('the CAS token authenticates', casMe.status === 200 && casMe.data.user.netid === netid);
+check('CAS account is a student account', casMe.data.user.account_type === 'student');
+check('CAS account cannot be password-signed-in',
+  (await call('/auth/login', { method: 'POST', body: { account_type: 'student', email: `${netid}@yale.edu`, password: 'cas-sso-no-password' } })).status === 401);
+const casBad = await fetch(`${BASE}/auth/cas/callback?portal=student&ticket=ST-mock&mock_netid=not-a-netid`, { redirect: 'manual' });
+check('callback rejects a malformed NetID', /error=/.test(casBad.headers.get('location') || ''));
 
 console.log(failures === 0 ? '\n✓ all checks passed\n' : `\n✗ ${failures} check(s) failed\n`);
 process.exit(failures === 0 ? 0 : 1);

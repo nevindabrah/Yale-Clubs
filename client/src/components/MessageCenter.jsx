@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { get, post } from '../api';
-import { Avatar, ClubLogo, Empty, Loading, Tag, relativeTime, useToast } from './ui';
+import { Avatar, ClubLogo, Composer, Empty, Loading, relativeTime, useToast } from './ui';
 
 /**
  * Shared inbox for both portals. `side` decides whose name headlines each
@@ -139,20 +139,13 @@ export default function MessageCenter({ side }) {
               <div ref={bottomRef} />
             </div>
 
-            <div className="composer">
-              <textarea
-                className="textarea"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder={side === 'officer' ? 'Reply as an officer…' : 'Write a message…'}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send();
-                }}
-              />
-              <button className="btn btn-primary" onClick={send} disabled={sending || !draft.trim()}>
-                {sending ? 'Sending…' : 'Send'}
-              </button>
-            </div>
+            <Composer
+              value={draft}
+              onChange={setDraft}
+              onSend={send}
+              disabled={sending}
+              placeholder={side === 'officer' ? 'Reply as an officer…' : 'Write a message…'}
+            />
           </>
         )}
       </div>

@@ -37,7 +37,7 @@ export default function Register() {
         ...form,
         class_year: form.class_year ? Number(form.class_year) : null,
       });
-      navigate(user.account_type === 'officer' ? '/officer' : '/catalog', { replace: true });
+      navigate(user.account_type === 'officer' ? '/officer' : '/dashboard', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -55,6 +55,15 @@ export default function Register() {
       </p>
 
       <form className="card card-pad" onSubmit={onSubmit}>
+        <a className="btn btn-cas btn-block" href={`/api/auth/cas/login?portal=${form.account_type}`}>
+          <span className="mark">Y</span>
+          Continue with Yale CAS
+        </a>
+        <div className="tiny faint center" style={{ marginTop: 8 }}>
+          CAS creates your account automatically — no password to choose.
+        </div>
+        <div className="divider">or register with a password</div>
+
         <div className="field">
           <label>This account is for…</label>
           <div className="segmented">

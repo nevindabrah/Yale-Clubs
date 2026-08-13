@@ -261,12 +261,15 @@ async function main() {
   });
   usedEmails.add('avery.chen@yale.edu');
 
-  // A population of students.
-  const studentIds = [demoStudentId, dualStudentId];
-  for (let i = 0; i < 160; i++) {
+  // A student body large enough that club rosters look real. With ~128 clubs
+  // averaging ~30 active members, a pool this size puts the typical student in
+  // four or five clubs — a plausible Yale course load's worth of commitments.
+  // A small pool would silently put every student in dozens of clubs.
+  const poolStudentIds = [];
+  for (let i = 0; i < 900; i++) {
     const first = pick(FIRST_NAMES);
     const last = pick(LAST_NAMES);
-    studentIds.push(
+    poolStudentIds.push(
       await createUser({
         accountType: 'student',
         fullName: `${first} ${last}`,
@@ -274,6 +277,10 @@ async function main() {
       })
     );
   }
+  // The two demo accounts are kept out of the random roster fill so their club
+  // lists stay curated and legible; they still appear in applications and
+  // message threads below.
+  const studentIds = [demoStudentId, dualStudentId, ...poolStudentIds];
 
   // One or two officer accounts per club.
   const officerIds = [demoOfficerId, dualOfficerId];
@@ -330,7 +337,7 @@ async function main() {
     const clubId = clubIdBySlug.get(c.slug);
     const target = Math.max(4, Math.min(Math.round(c.size_estimate * 0.6), 60));
     const chosen = new Set();
-    while (chosen.size < target) chosen.add(pick(studentIds));
+    while (chosen.size < target) chosen.add(pick(poolStudentIds));
     for (const uid of chosen) {
       const [r] = await conn.execute(
         `INSERT IGNORE INTO memberships (club_id, user_id, role, status, source, joined_at)

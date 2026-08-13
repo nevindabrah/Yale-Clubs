@@ -12,7 +12,8 @@ router.get('/dashboard', async (req, res) => {
   const memberships = await q(
     `SELECT m.id, m.role, m.status, m.joined_at,
             c.id AS club_id, c.slug, c.name, c.acronym, c.category,
-            c.logo_hue, c.meeting_day, c.meeting_time, c.meeting_location
+            c.logo_hue, c.meeting_day, c.meeting_time, c.meeting_location,
+            c.commitment_hours
        FROM memberships m JOIN clubs c ON c.id = m.club_id
       WHERE m.user_id = ? AND m.status = 'active'
       ORDER BY c.name`,
@@ -69,7 +70,52 @@ router.get('/dashboard', async (req, res) => {
     [uid]
   );
 
-  res.json({ memberships, applications, upcoming, bookmarks, announcements, unread: unread.n });
+  // Application deadlines worth acting on: clubs they saved or already applied
+  // to, plus anything still open in a category they have shown interest in.
+  const deadlines = await q(
+    `SELECT DISTINCT c.id, c.slug, c.name, c.acronym, c.logo_hue, c.category,
+            c.application_deadline, c.selectivity,
+            (b.id IS NOT NULL) AS is_saved,
+            (a.id IS NOT NULL) AS has_applied
+       FROM clubs c
+       LEFT JOIN bookmarks b ON b.club_id = c.id AND b.user_id = ?
+       LEFT JOIN applications a ON a.club_id = c.id AND a.user_id = ?
+      WHERE c.applications_open = 1
+        AND c.application_deadline IS NOT NULL
+        AND c.application_deadline >= CURDATE()
+        AND a.id IS NULL
+        AND (b.id IS NOT NULL
+             OR c.category IN (SELECT c2.category FROM memberships m2
+                                 JOIN clubs c2 ON c2.id = m2.club_id
+                                WHERE m2.user_id = ? AND m2.status = 'active'))
+      ORDER BY c.application_deadline
+      LIMIT 8`,
+    [uid, uid, uid]
+  );
+
+  // Clubs in categories they already engage with, that they have not joined.
+  const recommended = await q(
+    `SELECT c.id, c.slug, c.name, c.acronym, c.category, c.tagline, c.logo_hue,
+            c.rating, c.commitment_hours, c.application_required, c.applications_open,
+            (SELECT COUNT(*) FROM memberships m2
+              WHERE m2.club_id = c.id AND m2.status = 'active') AS member_count
+       FROM clubs c
+      WHERE c.is_active = 1
+        AND c.accepting_members = 1
+        AND c.category IN (SELECT c2.category FROM memberships m2
+                             JOIN clubs c2 ON c2.id = m2.club_id
+                            WHERE m2.user_id = ? AND m2.status = 'active')
+        AND c.id NOT IN (SELECT club_id FROM memberships WHERE user_id = ?)
+        AND c.id NOT IN (SELECT club_id FROM bookmarks WHERE user_id = ?)
+      ORDER BY c.rating DESC, c.name
+      LIMIT 6`,
+    [uid, uid, uid]
+  );
+
+  res.json({
+    memberships, applications, upcoming, bookmarks, announcements,
+    deadlines, recommended, unread: unread.n,
+  });
 });
 
 /** GET /api/student/calendar?days=30 — meetings and events across my clubs. */

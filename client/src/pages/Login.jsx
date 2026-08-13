@@ -1,11 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { get } from '../api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [params] = useSearchParams();
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [cas, setCas] = useState(null);
+
+  useEffect(() => {
+    get('/auth/cas/status').then(setCas).catch(() => {});
+  }, []);
 
   const [portal, setPortal] = useState(params.get('portal') === 'officer' ? 'officer' : 'student');
   const [email, setEmail] = useState('');
@@ -21,7 +27,7 @@ export default function Login() {
     setError('');
     try {
       const user = await login({ account_type: portal, email, password });
-      navigate(user.account_type === 'officer' ? '/officer' : '/catalog', { replace: true });
+      navigate(user.account_type === 'officer' ? '/officer' : '/dashboard', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -60,6 +66,19 @@ export default function Login() {
             </button>
           </div>
         </div>
+
+        {/* Full-page redirect, not fetch — CAS drives the browser itself. */}
+        <a className="btn btn-cas btn-block" href={`/api/auth/cas/login?portal=${portal}`}>
+          <span className="mark">Y</span>
+          Sign in with Yale CAS
+        </a>
+        {cas?.mode === 'mock' && (
+          <div className="tiny faint center" style={{ marginTop: 8 }}>
+            CAS is in development-stand-in mode — no real Yale login is contacted.
+          </div>
+        )}
+
+        <div className="divider">or use a YaleClubs password</div>
 
         <div className="field">
           <label htmlFor="email">Yale email</label>

@@ -50,13 +50,14 @@ export default function TopNav() {
 
   return (
     <nav className="nav">
-      <Link to={isOfficer ? '/officer' : '/catalog'} className="nav-brand">
+      <Link to={isOfficer ? '/officer' : isStudent ? '/dashboard' : '/catalog'} className="nav-brand">
         <span className="nav-mark">Y</span>
         YaleClubs
       </Link>
 
       {isStudent && (
         <>
+          <NavLink to="/dashboard" className="nav-link">Dashboard</NavLink>
           <NavLink to="/catalog" className="nav-link">Browse</NavLink>
           <NavLink to="/my/clubs" className="nav-link">My clubs</NavLink>
           <NavLink to="/my/applications" className="nav-link">Applications</NavLink>

@@ -128,6 +128,70 @@ Format:
 - **Rationale:** CourseTable users share links to filtered views constantly ("here are all the 2-hour open clubs"). Keeping state in the URL makes that free, survives a refresh, and lets the landing page's category tiles link directly into a pre-filtered catalog. `replace` rather than `push` keeps the back button from walking through every keystroke.
 - **Files:** `client/src/pages/Catalog.jsx`, `client/src/pages/Landing.jsx`
 
+### [D-015] Interface scale: readable over dense
+- **Date:** 2026-08-13
+- **Type:** ui
+- **Decision:** Raised the whole interface roughly one step in scale — 16px base type (was 14px), taller list rows, larger cards and controls, a 66px nav bar, and wider catalog panes.
+- **Rationale:** The first build copied CourseTable's spreadsheet density literally. CourseTable earns that density because a course search is a scanning task over hundreds of near-identical rows; picking a club is a *reading* task — you read a description, weigh a time commitment, look at who runs it. Compressing that made the app feel cramped rather than efficient. The three-pane structure and colored stat chips — the parts that actually make it read as CourseTable's sibling — are unchanged.
+- **Files:** `client/src/styles/theme.css`, `client/src/styles/app.css`
+
+### [D-016] Numbers format by what they are, not by type
+- **Date:** 2026-08-13
+- **Type:** ui
+- **Decision:** The `Chip` component takes an explicit `decimals` prop; when it is omitted, whole numbers render with no decimal places and fractional ones with one.
+- **Rationale:** The original always called `toFixed(1)`, so a club with 59 members displayed **59.0**. Member counts are integers and must never show a decimal; ratings and hours-per-week are genuinely fractional and must keep one. Deciding per call site is right because the formatting depends on what the number *means*, not on its JavaScript type.
+- **Files:** `client/src/components/ui.jsx`, `client/src/pages/Catalog.jsx`, `client/src/components/ClubDetail.jsx`
+
+### [D-017] Yale CAS single sign-on, with a development stand-in
+- **Date:** 2026-08-13
+- **Type:** security / architecture
+- **Decision:** Implemented the CAS 2.0 protocol properly: redirect to `<CAS_BASE>/login?service=…`, then validate the returned ticket **server-side** at `/serviceValidate` before trusting anything. On success we find-or-create the account for that NetID in the requested portal and mint the same JWT the password flow issues. `CAS_MODE=yale` uses `https://secure.its.yale.edu/cas`; `CAS_MODE=mock` (the default) swaps in a local stand-in login page that drives the identical callback code path. CAS accounts are stored with a non-bcrypt sentinel in `password_hash`, so they can never be signed into with a password.
+- **Rationale:** CAS is the right answer for a Yale app — it removes password storage entirely and guarantees the person actually holds the NetID. But **Yale ITS must register this app's service URL before real CAS will accept it**, and that registration cannot be obtained from inside this project. Shipping only the real path would mean shipping a button that always fails; shipping only a fake would mean the real integration never gets written. Doing both means the protocol code is real and exercised today, and going live is a two-line environment change.
+- **Alternatives considered:** A third-party CAS library (rejected — the protocol is one redirect and one validated GET; a dependency for that is not worth it). Parsing the CAS XML with an XML library (rejected — the success payload is a fixed, tiny shape; two targeted matches are clearer and dependency-free, and anything not matching is treated as failure).
+- **Files:** `server/src/routes/cas.js`, `client/src/pages/CasCallback.jsx`, `client/src/pages/Login.jsx`, `server/.env.example`
+
+### [D-018] ClubWiz: Claude with tools, and a working offline mode
+- **Date:** 2026-08-13
+- **Type:** architecture
+- **Decision:** ClubWiz is a server-side assistant with **one tool layer and two front ends**. Seven tools (`search_clubs`, `get_club`, `list_categories`, `my_memberships`, `my_schedule`, `open_deadlines`, `my_officer_summary`) run parameterized SQL against the same database the rest of the app uses. When `ANTHROPIC_API_KEY` is set, Claude (`claude-opus-5`, adaptive thinking, `effort: low`) drives those tools in a bounded loop and writes the answer. When it is not, a deterministic keyword router calls the *same* tools and formats the result.
+- **Rationale:** Three things drove this. (1) **The assistant must not invent clubs.** Giving it tools instead of relying on model knowledge means every club it names is one that exists in the catalog; the system prompt says so explicitly. (2) **It must not become a data leak.** The model never sees SQL and never supplies a user id — the authenticated user is injected server-side into every tool call, so `my_memberships` can only ever return the caller's own data and `my_officer_summary` only clubs they actually manage. (3) **It must work in this repository as cloned.** There is no API key in this environment, so a key-only implementation would have shipped as a dead button. The offline path is genuinely useful — it answers deadline, schedule, roster and catalog questions correctly — and the UI labels which mode is running rather than pretending.
+- **Alternatives considered:**
+  - The SDK's beta tool runner (rejected — a manual loop keeps this on the stable `messages.create` surface with no beta dependency, and makes the identity injection explicit at the one place it matters).
+  - Letting the model write SQL (rejected outright — arbitrary SQL from a model against a database with every student's applications in it is the whole vulnerability in one step).
+  - Failing loudly with no key (rejected — see (3)).
+- **Trade-off:** The offline router is pattern-matching, so unusual phrasings fall back to a keyword search. That is a floor, not a ceiling: with a key the same questions get real conversational answers.
+- **Files:** `server/src/clubwiz-tools.js`, `server/src/routes/clubwiz.js`, `client/src/components/ClubWiz.jsx`
+
+### [D-019] Pastel-blue visual system, motion on interaction
+- **Date:** 2026-08-13
+- **Type:** ui
+- **Decision:** Replaced the flat grey-on-white palette with a soft pastel-blue system: a tinted, subtly gradient page background, blue-cast shadows instead of grey, an accent family (sky / mint / lilac / peach / lemon) for tags and washes, a gradient nav bar, pill-shaped buttons, and radii raised across the board (cards 22px, modals 30px, buttons fully rounded). Interaction is now visible — cards and tiles lift on hover, catalog rows slide and tint, the send button scales, panels and bubbles animate in.
+- **Rationale:** The original read as a competent but anonymous admin panel. A club directory is something students browse for fun, and the interface should invite that. Yale blue is kept where identity matters (brand mark, nav, primary actions) so it still reads as a Yale app rather than a generic pastel template.
+- **Guardrails:** Every animation is short (150–500ms) and tied to an interaction rather than looping in the periphery; the whole system is disabled under `prefers-reduced-motion`. Contrast for body and muted text was kept at readable ratios rather than washing out with the pastels.
+- **Files:** `client/src/styles/theme.css`, `client/src/styles/app.css`
+
+### [D-020] Landing page: one idea per screen
+- **Date:** 2026-08-13
+- **Type:** ui
+- **Decision:** Rebuilt the landing page around three sections with large gaps between them — an animated hero (one headline, one sentence, two buttons), the two portal cards, and a light pill cloud of categories. Removed the 14-card category grid that previously sat under the fold.
+- **Rationale:** The old page put a hero, two dense feature lists, a fourteen-item card grid and three paragraphs of caveats on one screen, so nothing led. A first-time visitor needs to know what this is, which portal they are, and how to start looking — everything else belongs in the catalog, which is one click away. Categories survive as pills because they are a genuinely useful entry point, but as a light row rather than a wall of cards.
+- **Files:** `client/src/pages/Landing.jsx`
+
+### [D-021] Seed a student body large enough for realistic rosters
+- **Date:** 2026-08-13
+- **Type:** data
+- **Decision:** Grew the seeded student population from 162 to 900, and excluded the two headline demo accounts from the random roster fill so their club lists stay curated.
+- **Rationale:** Caught by ClubWiz, not by a test. Filling ~128 clubs to ~30 members each from a pool of 162 students put the average student in **28 clubs**, so the assistant correctly reported that the demo student was committed to "140 hours a week." The rosters had looked fine because nothing had ever summed them per student. With 900 students the average is 4.8 clubs — a believable load — and every per-student view (dashboard hours, ClubWiz advice, officer rosters) becomes meaningful.
+- **Lesson recorded:** Seed data can be individually plausible and collectively absurd. Any figure the app *aggregates* needs checking at the aggregate level, not just per row.
+- **Files:** `server/db/seed.js`
+
+### [D-022] Rate limiting, relaxed outside production
+- **Date:** 2026-08-13
+- **Type:** security
+- **Decision:** Added `express-rate-limit` with per-endpoint budgets — sign-in 20 per 15 minutes, registration 10 per hour, ClubWiz 20 per minute, everything else 600 per minute. Off production the limits are multiplied by 25. The server also refuses to boot with `NODE_ENV=production` unless `JWT_SECRET` is long and no longer the default.
+- **Rationale:** Login brute-forcing and an unbounded LLM endpoint were the two open holes flagged in `docs/SECURITY-NOTES.md`. The dev multiplier exists because the strict registration budget would otherwise lock the end-to-end suite out after three runs — limits nobody can develop against get deleted, so they are scaled rather than skipped.
+- **Files:** `server/src/index.js`, `docs/SECURITY-NOTES.md`
+
 ---
 
 ## Action log
@@ -149,4 +213,13 @@ Chronological record of build actions (as opposed to design decisions).
 | A-011 | 2026-08-13 | Added README, `docs/SECURITY-NOTES.md`, `.gitignore`, `docker-compose.yml`, root `package.json` scripts. |
 | A-012 | 2026-08-13 | Verified the Vite dev server serves the SPA and proxies `/api` to the Express server. **Not verified: visual rendering in a real browser** — no browser automation was available in this environment. |
 | A-013 | 2026-08-13 | Initialized the git repository and made the first commit. |
+| A-014 | 2026-08-13 | **Round two.** Fixed member counts rendering as `59.0`; rescaled the whole interface up one step (D-015, D-016). |
+| A-015 | 2026-08-13 | Added the student dashboard: a seven-day calendar strip, four counters, next-up list, application states, deadline countdowns, club announcements and category-based recommendations. Extended `/api/student/dashboard` with `deadlines` and `recommended`. |
+| A-016 | 2026-08-13 | Rebuilt the message composer as a shared `Composer` — Enter sends, Shift+Enter newlines, auto-growing textarea, circular arrow send button. Reused verbatim in ClubWiz. |
+| A-017 | 2026-08-13 | Implemented Yale CAS (D-017) with a development stand-in, plus the client callback route and sign-in buttons. |
+| A-018 | 2026-08-13 | Built ClubWiz (D-018): seven scoped SQL tools, a Claude tool-use loop, a deterministic offline router, and a floating chat panel. |
+| A-019 | 2026-08-13 | Hardened for real use: per-endpoint rate limits, production `JWT_SECRET` validation, `trust proxy`, health endpoint reporting ClubWiz and CAS modes (D-022). |
+| A-020 | 2026-08-13 | Redesigned the visual system to pastel blue with large radii and interaction motion (D-019); rebuilt the landing page with far more breathing room (D-020). |
+| A-021 | 2026-08-13 | ClubWiz surfaced that the demo student was "committed to 140 hrs/week" — grew the seeded student body 162 → 900 so rosters aggregate sensibly (D-021). Average is now 4.8 clubs per student. |
+| A-022 | 2026-08-13 | Extended the e2e suite from 35 to **55 checks** — dashboard payload, ClubWiz across six question types and both portals, and the full CAS handshake including NetID validation and the no-password-login guarantee. All passing. |
 </content>

@@ -220,13 +220,14 @@ export default function Catalog() {
               )}
             </div>
             <div className="chips">
-              <Chip value={Number(club.rating)} label="rating" />
+              <Chip value={club.rating} label="rating" decimals={1} />
               <Chip
-                value={Number(club.commitment_hours)}
-                label="hrs"
+                value={club.commitment_hours}
+                label="hrs/wk"
+                decimals={1}
                 tone={`chip-${band(Number(club.commitment_hours), { good: 8, mid: 5, invert: true })}`}
               />
-              <Chip value={club.member_count} label="mem" tone="chip-flat" />
+              <Chip value={club.member_count} label="members" decimals={0} tone="chip-flat" />
             </div>
           </div>
         ))}

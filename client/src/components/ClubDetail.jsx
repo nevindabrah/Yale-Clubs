@@ -106,12 +106,18 @@ export default function ClubDetail({ slug, onClose }) {
         </div>
 
         <div className="row" style={{ gap: 6, marginTop: 14 }}>
-          <Chip value={Number(club.rating)} label="rating" />
-          <Chip value={Number(club.commitment_hours)} label="hrs/wk" tone={`chip-${band(Number(club.commitment_hours), { good: 8, mid: 5, invert: true })}`} />
-          <Chip value={club.member_count} label="members" tone="chip-flat" />
+          <Chip value={club.rating} label="rating" decimals={1} />
           <Chip
-            value={Number(club.selectivity)}
+            value={club.commitment_hours}
+            label="hrs/wk"
+            decimals={1}
+            tone={`chip-${band(Number(club.commitment_hours), { good: 8, mid: 5, invert: true })}`}
+          />
+          <Chip value={club.member_count} label="members" decimals={0} tone="chip-flat" />
+          <Chip
+            value={club.selectivity}
             label="select."
+            decimals={1}
             tone={`chip-${band(Number(club.selectivity), { good: 4.2, mid: 3, invert: true })}`}
           />
         </div>

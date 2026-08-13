@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 /* ------------------------------------------------------------ helpers */
 
@@ -113,9 +113,22 @@ export function Avatar({ name, hue, large = false }) {
   );
 }
 
-export function Chip({ value, label, tone }) {
+/**
+ * Numeric stat badge. `decimals` defaults to 1 for fractional values and 0 for
+ * whole numbers — counts like member totals must never render as "59.0".
+ */
+export function Chip({ value, label, tone, decimals }) {
   const cls = tone || band(value);
-  const shown = value == null ? '—' : typeof value === 'number' ? value.toFixed(1) : value;
+  let shown = '—';
+  if (value != null && value !== '') {
+    const n = Number(value);
+    if (Number.isFinite(n)) {
+      const places = decimals ?? (Number.isInteger(n) ? 0 : 1);
+      shown = n.toFixed(places);
+    } else {
+      shown = value;
+    }
+  }
   return (
     <div className={`chip chip-${cls}`} title={`${label}: ${shown}`}>
       <span className="n">{shown}</span>
@@ -168,6 +181,72 @@ export function Modal({ title, onClose, children, footer, wide = false }) {
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Message composer. Enter sends, Shift+Enter adds a newline, and the send
+ * control is a circular arrow inside the input rather than a labelled button.
+ * The textarea grows with its content up to a cap. See DECISIONS.md D-016.
+ */
+export function Composer({
+  value,
+  onChange,
+  onSend,
+  placeholder = 'Write a message…',
+  disabled = false,
+  hint = 'Enter to send · Shift + Enter for a new line',
+  autoFocus = false,
+}) {
+  const ref = useRef(null);
+
+  // Grow to fit, then scroll — recomputed on every change so deletes shrink it.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [value]);
+
+  const canSend = !disabled && value.trim().length > 0;
+
+  function onKeyDown(e) {
+    if (e.key !== 'Enter') return;
+    // Shift/Alt+Enter inserts a newline; IME composition must not submit.
+    if (e.shiftKey || e.altKey || e.nativeEvent?.isComposing) return;
+    e.preventDefault();
+    if (canSend) onSend();
+  }
+
+  return (
+    <div className="composer">
+      <div className="composer-box">
+        <textarea
+          ref={ref}
+          rows={1}
+          value={value}
+          placeholder={placeholder}
+          disabled={disabled}
+          autoFocus={autoFocus}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+        />
+        <button
+          className="send-btn"
+          onClick={() => canSend && onSend()}
+          disabled={!canSend}
+          aria-label="Send message"
+          title="Send (Enter)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
+               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <line x1="12" y1="19" x2="12" y2="5" />
+            <polyline points="5 12 12 5 19 12" />
+          </svg>
+        </button>
+      </div>
+      {hint && <div className="composer-hint">{hint}</div>}
     </div>
   );
 }

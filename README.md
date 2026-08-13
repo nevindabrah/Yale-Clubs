@@ -12,12 +12,33 @@ same dense listing rows, same colored stat chips, same light/dark toggle.
 
 |  | **Student portal** | **Officer portal** |
 |---|---|---|
+| Home | Dashboard: week-at-a-glance calendar, deadline countdowns, application states, recommendations | Dashboard across every club you manage |
 | Catalog | Search and filter 128 organizations | Browse it too, as an officer |
 | Membership | Join open clubs instantly, leave any time | See the full roster with class year, college, major, join date and event turnout |
 | Applications | Apply with club-specific questions, track status, withdraw | Read answers, score, leave internal notes, and decide — accepting adds them to the roster automatically |
 | Events | RSVP; every club meeting on one calendar | Create events, mark them members-only, see who's coming |
 | Messaging | Message a club's officers | Answer from one inbox across all your clubs |
 | Listing | — | Edit description, meeting time, recruiting status and application questions |
+| **ClubWiz** | Ask about clubs, deadlines, your own schedule | Ask about your queues, rosters and events |
+
+### Signing in
+
+Two ways in, both landing on the same session:
+
+- **Yale CAS** — full CAS 2.0 handshake with server-side ticket validation. Ships with a
+  development stand-in (`CAS_MODE=mock`) so it works before Yale ITS registers the service.
+- **Email and password** — `@yale.edu` addresses, bcrypt hashed.
+
+### ClubWiz
+
+The built-in assistant. It reaches the database through seven scoped tools — catalog search, club
+detail, categories, your memberships, your schedule, open deadlines, officer summary — never
+through raw SQL, and always with your identity injected server-side, so it can only ever read what
+you're allowed to see.
+
+Set `ANTHROPIC_API_KEY` and it runs on Claude (`claude-opus-5`) with real tool use. Without a key it
+falls back to a deterministic router over the *same* tools — less conversational, still correct, and
+the UI says which mode it's in.
 
 ### Officers hold two separate accounts
 
@@ -78,13 +99,15 @@ Both land on port 3307 to match `.env.example`.
 ## Tests
 
 ```bash
-npm test    # 35 end-to-end checks against a running API
+npm test    # 55 end-to-end checks against a running API
 ```
 
 Covers the dual-account model, catalog filtering, join vs. apply rules, the full
-application → decision → membership pipeline, messaging, RSVPs, and the authorization boundaries
-(a student token on officer routes, an officer acting on a club they don't manage, and internal
-officer notes never reaching the applicant).
+application → decision → membership pipeline, messaging, RSVPs, the dashboard payload, ClubWiz
+across six question types in both portals, the complete CAS handshake, and the authorization
+boundaries (a student token on officer routes, an officer acting on a club they don't manage,
+internal officer notes never reaching the applicant, and CAS accounts being unable to
+password-sign-in).
 
 ---
 
@@ -100,10 +123,12 @@ yaleclubs/
 │       └── pages/          student/ and officer/ route trees
 ├── server/
 │   ├── db/
-│   │   ├── schema.sql      13 tables, fully commented
-│   │   ├── clubs.data.js   the 128-club catalog
-│   │   └── seed.js         demo people, applications, events, messages
-│   ├── src/routes/         auth · clubs · student · officer · messages
+│   │   ├── schema.sql        13 tables, fully commented
+│   │   ├── clubs.data.js     the 128-club catalog
+│   │   └── seed.js           demo people, applications, events, messages
+│   ├── src/
+│   │   ├── clubwiz-tools.js  the seven scoped tools ClubWiz can call
+│   │   └── routes/           auth · cas · clubs · student · officer · messages · clubwiz
 │   └── test/e2e.mjs
 ├── scripts/                project-local MySQL start/stop
 └── docs/SECURITY-NOTES.md  what's hardened, what isn't, and why
