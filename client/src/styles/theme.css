@@ -1,0 +1,124 @@
+/* =====================================================================
+   YaleClubs design tokens — a sibling of CourseTable's visual language.
+   See DECISIONS.md D-004.
+   ===================================================================== */
+
+:root {
+  /* Yale blue anchors the palette; the neutrals stay cool and flat. */
+  --yale-blue: #00356b;
+  --yale-blue-light: #286dc0;
+
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #f1f4f8;
+  --surface-3: #e7ecf2;
+  --border: #dde3ea;
+  --border-strong: #c6d0db;
+
+  --text: #14202c;
+  --text-muted: #5d6f82;
+  --text-faint: #8b9aab;
+
+  --primary: #00356b;
+  --primary-hover: #002850;
+  --primary-text: #ffffff;
+  --link: #1a5fb4;
+
+  --nav-bg: #00356b;
+  --nav-text: #dce7f4;
+  --nav-text-active: #ffffff;
+  --nav-border: #0b4a89;
+
+  --good: #1f9254;
+  --good-bg: #e3f5ea;
+  --mid: #b4801a;
+  --mid-bg: #fdf1da;
+  --bad: #c2453f;
+  --bad-bg: #fbe6e5;
+  --info: #1a5fb4;
+  --info-bg: #e4eefb;
+  --neutral-bg: #eceff3;
+
+  --shadow-sm: 0 1px 2px rgba(16, 30, 46, 0.06);
+  --shadow-md: 0 2px 10px rgba(16, 30, 46, 0.09);
+  --shadow-lg: 0 12px 32px rgba(16, 30, 46, 0.16);
+
+  --radius: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+
+  --nav-h: 52px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0e131a;
+  --surface: #161c25;
+  --surface-2: #1c242f;
+  --surface-3: #242e3b;
+  --border: #29333f;
+  --border-strong: #3a4655;
+
+  --text: #e5ecf4;
+  --text-muted: #97a6b8;
+  --text-faint: #6f8093;
+
+  --primary: #3b82d6;
+  --primary-hover: #4b92e6;
+  --primary-text: #ffffff;
+  --link: #6cabf0;
+
+  --nav-bg: #0a0f16;
+  --nav-text: #b8c6d6;
+  --nav-text-active: #ffffff;
+  --nav-border: #202a36;
+
+  --good: #4ec27f;
+  --good-bg: #16311f;
+  --mid: #d9a441;
+  --mid-bg: #322611;
+  --bad: #e8736c;
+  --bad-bg: #351a19;
+  --info: #6cabf0;
+  --info-bg: #12243a;
+  --neutral-bg: #222b36;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.6);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+h1, h2, h3, h4 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+h1 { font-size: 25px; }
+h2 { font-size: 19px; }
+h3 { font-size: 16px; }
+h4 { font-size: 13px; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-pill);
+  border: 3px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }

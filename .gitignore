@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# secrets — .env.example is committed instead
+.env
+.env.local
+*.local
+
+# build output
+dist/
+build/
+
+# project-local MySQL instance (D-006) — never commit a database
+server/mysql-data/
+server/mysql-run/
+server/.conda-mysql/
+
+# logs
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store

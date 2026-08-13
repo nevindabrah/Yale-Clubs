@@ -1,0 +1,152 @@
+# DECISIONS.md — YaleClubs
+
+A running log of every decision and action taken while building YaleClubs.
+Newest entries at the bottom. Each entry: **what**, **why**, and **files touched**.
+
+Format:
+
+```
+### [D-###] Short title
+- **Date:** YYYY-MM-DD
+- **Type:** architecture | data | ui | infra | security | process
+- **Decision:** what was decided
+- **Rationale:** why
+- **Alternatives considered:** what was rejected and why
+- **Files:** paths touched
+```
+
+---
+
+### [D-001] Project scope and portal model
+- **Date:** 2026-08-13
+- **Type:** architecture
+- **Decision:** Build a two-portal web app — a **Student portal** (browse/search clubs, bookmark, join, apply, RSVP to events, message officers) and an **Officer portal** (review applications and render decisions, view roster + member details, post events and announcements, reply to student messages). Both are served by one React SPA and one Express/MySQL API.
+- **Rationale:** The user asked for two portals with distinct capabilities. A single SPA with role-scoped routes keeps the codebase and design system unified while the experiences stay separate.
+- **Alternatives considered:** Two separate React apps (rejected — duplicated design system, build config, and auth code for no user-facing benefit).
+- **Files:** repository root
+
+### [D-002] Separate accounts for the same human
+- **Date:** 2026-08-13
+- **Type:** architecture / security
+- **Decision:** `users` has an `account_type ENUM('student','officer')`, and uniqueness is enforced on the **composite** key `(email, account_type)` rather than on `email` alone. One person may register `jane.doe@yale.edu` twice — once as a student account, once as an officer account — with independent passwords and independent sessions. The login form requires choosing a portal, and the issued JWT carries `account_type`; officer-only endpoints reject student tokens and vice versa.
+- **Rationale:** The user explicitly required that a club officer have a separate account for managing their club versus joining other clubs as a normal student. Separating at the account level (not just a role flag) means an officer browsing other clubs cannot accidentally act with officer privilege, and the two contexts have separate audit trails.
+- **Alternatives considered:**
+  - A single account with a role-switcher toggle (rejected — the user asked for *separate accounts*; also blurs the audit trail).
+  - Two physical tables `students` / `officers` (rejected — duplicates auth logic, password reset, and every foreign key).
+- **Files:** `server/db/schema.sql`, `server/src/routes/auth.js`, `server/src/auth.js`
+
+### [D-003] Stack: React (Vite) + Express + MySQL
+- **Date:** 2026-08-13
+- **Type:** architecture
+- **Decision:** Frontend is React 18 via Vite. Backend is Node/Express with `mysql2/promise` talking directly to MySQL 8. No ORM.
+- **Rationale:** The user specified React and MySQL. Vite gives fast HMR and a trivial dev proxy. Raw SQL via `mysql2` keeps the schema explicit and readable in `schema.sql`, which matters for a teaching/portfolio project — you can see exactly what every query does.
+- **Alternatives considered:** Prisma or Sequelize (rejected — hides the SQL, adds a codegen step, and the user asked for "MySQL for backend database handling," which reads as wanting real SQL); Next.js (rejected — adds SSR complexity this app does not need).
+- **Files:** `client/`, `server/`
+
+### [D-004] Aesthetic modeled on CourseTable
+- **Date:** 2026-08-13
+- **Type:** ui
+- **Decision:** Build a design system that reads as a sibling of CourseTable: a dark navy top navigation bar, a light neutral page background, a **three-pane catalog** (filter sidebar → results list → detail pane), dense compact result rows, pill-shaped category tags, colored numeric rating/stat badges on a green→yellow→red scale, and a light/dark theme toggle. Typography uses a system sans stack at CourseTable-like sizes (13–14px in dense areas).
+- **Rationale:** The user asked for aesthetics "very similar to CourseTable as they are sister apps." The three-pane browse layout and the colored stat chips are CourseTable's most recognizable signatures.
+- **Alternatives considered:** Copying CourseTable's actual CSS/assets (rejected — that is someone else's code and branding; this is an independent implementation in the same visual language). No CSS framework was used so the tokens stay legible and self-contained.
+- **Files:** `client/src/styles/theme.css`, `client/src/styles/app.css`
+
+### [D-005] Real Yale organizations as seed data, synthetic contact details
+- **Date:** 2026-08-13
+- **Type:** data
+- **Decision:** Seed the catalog with **real, publicly known Yale undergraduate organizations** (names, categories, founding years where well documented, and paraphrased descriptions of what the group does). **Meeting times, room locations, contact email addresses, application deadlines, and member counts are synthetic demo values** and are marked as such. Contact emails use the non-routable demo domain `@clubs.yale.demo` so nothing in the seed can be mistaken for a real inbox.
+- **Rationale:** The user asked for the app to be "based off of real Yale clubs" with "the necessary details." Real names and real descriptions make the catalog authentic. But officer contact emails, meeting rooms, and deadlines rotate every year and are not reliably public — inventing them and presenting them as fact would put wrong information in front of students. Synthetic-but-clearly-labeled values keep the demo fully functional without asserting false specifics.
+- **Alternatives considered:** Scraping Yale Connect / the Yale student org directory (rejected — no authorization to scrape, and the data would go stale immediately); fabricating plausible real-looking emails (rejected — actively misleading).
+- **Files:** `server/db/clubs.data.js`, `server/db/seed.js`
+
+### [D-006] Local MySQL instance is project-scoped
+- **Date:** 2026-08-13
+- **Type:** infra
+- **Decision:** MySQL 8.4 binaries were found on this machine (shipped with Anaconda) but no server was initialized. Rather than touch a system-wide MySQL, the project initializes its **own data directory** at `server/.mysql-data`, listening on **port 3307** with a project-local socket. `npm run db:start` / `npm run db:stop` manage it.
+- **Rationale:** A project-scoped instance cannot collide with any existing MySQL the user installs later, needs no `sudo`, and can be deleted by removing one folder. Port 3307 avoids the default 3306.
+- **Alternatives considered:** Docker Compose (rejected — Docker is not installed here); Homebrew `mysql` service (rejected — Homebrew has no MySQL formula installed and a global service is heavier than this project needs). A `docker-compose.yml` is still provided as an alternative path for other machines.
+- **Files:** `scripts/db-start.sh`, `scripts/db-stop.sh`, `docker-compose.yml`
+
+### [D-007] Password hashing and session handling
+- **Date:** 2026-08-13
+- **Type:** security
+- **Decision:** Passwords are hashed with `bcryptjs` at cost factor 10. Sessions are stateless JWTs (7-day expiry) signed with `JWT_SECRET` from `.env`, sent by the client in an `Authorization: Bearer` header and held in `localStorage`.
+- **Rationale:** Standard, dependency-light, and adequate for a project of this scope. `bcryptjs` is pure JS so there is no native build step.
+- **Alternatives considered:** httpOnly cookie sessions (more secure against XSS, but requires CSRF handling and complicates the Vite dev proxy — noted in `docs/SECURITY-NOTES.md` as the production upgrade path). Yale CAS SSO (rejected — requires an institutional service registration the project cannot obtain; email/password registration restricted to `@yale.edu` addresses stands in for it).
+- **Files:** `server/src/routes/auth.js`, `server/src/auth.js`, `docs/SECURITY-NOTES.md`
+
+### [D-008] Applications are club-configurable question sets
+- **Date:** 2026-08-13
+- **Type:** data / architecture
+- **Decision:** Each club owns a list of `application_questions`. A student's application stores one `application_answers` row per question. Application status is a state machine: `submitted → under_review → interview → accepted | rejected`, plus `withdrawn` (student-initiated).
+- **Rationale:** Yale clubs' applications differ wildly — the Dramat wants a portfolio, YUCG wants a case-style prompt, an a cappella group wants an audition slot. Free-form per-club questions model reality; a fixed application form would not. The `interview` state exists because most competitive Yale groups have a second round.
+- **Alternatives considered:** A single free-text "why do you want to join" field (rejected — too thin for the officer decision workflow the user asked for).
+- **Files:** `server/db/schema.sql`, `server/src/routes/officer.js`, `server/src/routes/student.js`
+
+### [D-009] Messaging is thread-per-(student, club)
+- **Date:** 2026-08-13
+- **Type:** architecture
+- **Decision:** A `message_threads` row is unique per `(club_id, student_user_id)`. Any officer of that club can read and reply; replies are attributed to the individual officer who sent them. Unread counts are computed from `read_at` on each message.
+- **Rationale:** Students message *the club*, not one specific person, and officer rosters turn over. Threading by club means a conversation survives an officer graduating. Attribution on each message preserves who actually answered.
+- **Alternatives considered:** Direct user-to-user DMs (rejected — breaks when the officer graduates, and exposes officers' personal inboxes).
+- **Files:** `server/db/schema.sql`, `server/src/routes/messages.js`
+
+### [D-010] Join model: open clubs vs. application-required clubs
+- **Date:** 2026-08-13
+- **Type:** data
+- **Decision:** Every club carries an `application_required` boolean. Open clubs (most cultural, service, and club-sport organizations) accept an instant "Join" that writes a `memberships` row directly. Application-required clubs (a cappella, the Dramat, YUCG, publications, YDN) hide the Join button and surface an "Apply" flow instead.
+- **Rationale:** This mirrors how Yale actually works — some groups you simply show up to, others "rush" or audition. It also gives the officer portal a meaningful decision queue.
+- **Files:** `server/db/clubs.data.js`, `client/src/pages/ClubDetail.jsx`
+
+### [D-011] Repository layout and version control hygiene
+- **Date:** 2026-08-13
+- **Type:** process
+- **Decision:** Single repository, three top-level app folders (`client/`, `server/`, `scripts/`) plus `docs/`. `.gitignore` excludes `node_modules`, `.env`, `server/.mysql-data`, and build output. `.env.example` is committed so a fresh clone knows what to set. This DECISIONS.md is updated in the same commit as the change it describes.
+- **Rationale:** The user asked for a decision log specifically to make version control easier — the log is only useful if a decision entry and its code land together, so a reviewer reading `git log` can jump to the reasoning.
+- **Files:** `.gitignore`, `server/.env.example`, `DECISIONS.md`
+
+### [D-012] MySQL data directory must not be hidden
+- **Date:** 2026-08-13
+- **Type:** infra
+- **Decision:** The project-local MySQL data directory is `server/mysql-data`, **not** `.mysql-data`.
+- **Rationale:** Discovered the hard way. With a dot-prefixed datadir, `mysqld --initialize-insecure` succeeds, but every subsequent start dies with `[InnoDB] Can't create UNDO tablespace innodb_undo_001 since './undo_001' already exists` → `Failed to initialize DD Storage Engine`. InnoDB's tablespace discovery scan skips hidden directories, so it never finds the undo tablespaces it just created, concludes it must bootstrap them, and then fails because the files are right there. Two independent MySQL builds (Anaconda 8.4.0 and conda-forge 9.7.2) failed identically, which is what ruled out a bad build and pointed at the path. Renaming the directory fixed it immediately.
+- **Alternatives considered:** Passing `--innodb-undo-directory` explicitly (tried — does not help; the scan, not the path resolution, is the problem). Deleting the stale `undo_*_trunc.log` (tried — not the cause).
+- **Files:** `scripts/db-start.sh`, `scripts/db-stop.sh`, `.gitignore`, `README.md`
+
+### [D-013] End-to-end tests over unit tests
+- **Date:** 2026-08-13
+- **Type:** process
+- **Decision:** The test suite is a single script (`server/test/e2e.mjs`) that drives the running HTTP API through complete user journeys — register both account types on one email, search, join, apply, decide, message, RSVP — plus explicit negative checks on every authorization boundary. No unit tests, no mocking framework, no test runner dependency.
+- **Rationale:** The interesting risks in this app are all at the seams: does accepting an application actually create a membership row, does an officer token get rejected on student routes, does `internal_note` ever escape to a student. Unit tests with a mocked database would pass while any of those broke. Running against real MySQL with real HTTP catches what matters, and 35 checks run in under two seconds.
+- **Trade-off:** Requires a seeded database to be running. Accepted — the same command that starts the app starts the database.
+- **Files:** `server/test/e2e.mjs`, `package.json`
+
+### [D-014] Catalog filter state lives in the URL
+- **Date:** 2026-08-13
+- **Type:** ui
+- **Decision:** Every catalog filter — search text, categories, join type, max hours, min rating, sort, and the currently open club — is mirrored into the query string, replacing history rather than pushing.
+- **Rationale:** CourseTable users share links to filtered views constantly ("here are all the 2-hour open clubs"). Keeping state in the URL makes that free, survives a refresh, and lets the landing page's category tiles link directly into a pre-filtered catalog. `replace` rather than `push` keeps the back button from walking through every keystroke.
+- **Files:** `client/src/pages/Catalog.jsx`, `client/src/pages/Landing.jsx`
+
+---
+
+## Action log
+
+Chronological record of build actions (as opposed to design decisions).
+
+| # | Date | Action |
+|---|------|--------|
+| A-001 | 2026-08-13 | Probed the machine: Node v22.18.0, npm 10.9.3, git 2.50.1, MySQL 8.4.0 binaries present via Anaconda but **no server initialized and no data directory**; `gh` CLI **not installed**; Docker not present. |
+| A-002 | 2026-08-13 | Created directory skeleton `yaleclubs/{client,server,scripts,docs}`. |
+| A-003 | 2026-08-13 | Authored this DECISIONS.md with entries D-001 … D-011. |
+| A-004 | 2026-08-13 | Wrote `server/db/schema.sql` — 13 tables covering users, clubs, officers, memberships, bookmarks, applications (+ questions and answers), events, RSVPs, announcements, and message threads. |
+| A-005 | 2026-08-13 | Built `server/db/clubs.data.js` — **128 real Yale organizations** across 14 categories: publications (YDN, Record, Lit, New Journal, Scientific), 20 music groups (Whiffenpoofs, Spizzwinks(?), SOBs, Shades, YSO, YPMB, DPops…), theater and improv (the Dramat, Purple Crayon, Exit Players), 5 YPU-related political orgs, pre-professional (YUCG, YUDI, SWS, YES), STEM (YUAA, YCS, iGEM, SWE, NSBE, SHPE), 16 cultural and identity organizations, 5 religious, 10 service (Dwight Hall, YHHAP, Kesem, YSFP), 12 club sports, and health/wellness (Walden, CCEs). |
+| A-006 | 2026-08-13 | Built the Express API: `auth`, `clubs`, `student`, `officer`, `messages` route modules with JWT middleware and per-club officer authorization. |
+| A-007 | 2026-08-13 | **MySQL debugging.** Anaconda's `mysqld` 8.4.0 initialized a datadir but refused to restart against it. Installed conda-forge `mysql-server` 9.7.2 into `server/.conda-mysql` — identical failure, which ruled out the build. Root cause was the dot-prefixed datadir (see D-012). Fixed by renaming to `server/mysql-data`. |
+| A-008 | 2026-08-13 | Migrated and seeded: 128 clubs, 153 application questions, 162 students, 187 officer accounts, 190 officer roles, 4,578 memberships, 457 applications, 1,015 events, 258 announcements, 30 message threads. |
+| A-009 | 2026-08-13 | Built the React client: design tokens, three-pane catalog, shared `ClubDetail` and `MessageCenter`, four student pages, three officer pages (dashboard, five-tab club manager, inbox). `vite build` clean at 250 KB / 74 KB gzipped. |
+| A-010 | 2026-08-13 | Wrote and ran `server/test/e2e.mjs` — **35/35 checks pass**, including all four authorization-boundary negatives. |
+| A-011 | 2026-08-13 | Added README, `docs/SECURITY-NOTES.md`, `.gitignore`, `docker-compose.yml`, root `package.json` scripts. |
+| A-012 | 2026-08-13 | Verified the Vite dev server serves the SPA and proxies `/api` to the Express server. **Not verified: visual rendering in a real browser** — no browser automation was available in this environment. |
+| A-013 | 2026-08-13 | Initialized the git repository and made the first commit. |
+</content>

@@ -1,0 +1,25 @@
+# Alternative to scripts/db-start.sh for machines that have Docker.
+# Brings up MySQL 8 on port 3307 to match server/.env.example.
+#
+#   docker compose up -d
+#   npm --prefix server run db:reset
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: yaleclubs-mysql
+    restart: unless-stopped
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_DATABASE: yaleclubs
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - yaleclubs-db:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1']
+      interval: 5s
+      retries: 20
+
+volumes:
+  yaleclubs-db:

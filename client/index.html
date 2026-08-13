@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YaleClubs — find your people at Yale</title>
+    <meta
+      name="description"
+      content="Browse every Yale undergraduate organization, apply, and manage your club — a sister app to CourseTable."
+    />
+    <script>
+      // Apply the saved theme before first paint so there is no flash.
+      (function () {
+        var t = localStorage.getItem('yc-theme');
+        if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
