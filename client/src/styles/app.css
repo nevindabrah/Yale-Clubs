@@ -1,5 +1,5 @@
 /* =====================================================================
-   YaleClubs components.
+   ClubTable components.
 
    Structure still follows CourseTable — dark nav, three-pane catalog,
    colored stat chips — but rendered in a soft pastel-blue system with
@@ -35,31 +35,34 @@
   gap: 6px;
   padding: 0 22px;
   background: var(--nav-bg);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
   border-bottom: 1px solid var(--nav-border);
-  box-shadow: 0 2px 18px rgba(10, 40, 78, 0.16);
+  box-shadow: 0 1px 3px rgba(10, 40, 78, 0.05);
 }
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  margin-right: 22px;
-  color: #fff;
-  font-weight: 700;
-  font-size: 20px;
-  letter-spacing: -0.025em;
-}
+.nav-brand { display: flex; align-items: center; margin-right: 22px; }
 .nav-brand:hover { text-decoration: none; }
-.nav-brand:hover .nav-mark { transform: rotate(-8deg) scale(1.06); }
-.nav-mark {
-  width: 34px; height: 34px;
-  display: grid; place-items: center;
-  border-radius: 12px;
-  background: linear-gradient(140deg, #fff, var(--sky));
-  color: var(--yale-blue);
-  font-weight: 800;
-  font-size: 17px;
-  transition: transform 0.25s var(--ease);
+
+/* ------------------------------------------------------------ wordmark */
+.logo-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
 }
+.ct-mark { flex: none; transition: transform 0.3s var(--ease); }
+.nav-brand:hover .ct-mark { transform: rotate(-10deg) scale(1.07); }
+
+/* "Club" in serif, "Table" in blue — the CourseTable two-tone split.
+   Sized in em so the lockup scales with whatever context holds it. */
+.logo-word {
+  font-family: var(--font-serif);
+  font-size: 1.32em;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--text);
+  white-space: nowrap;
+}
+.logo-word-accent { color: var(--primary); }
 .nav-link {
   position: relative;
   display: inline-flex; align-items: center;
@@ -71,14 +74,14 @@
   white-space: nowrap;
   transition: background 0.18s var(--ease), color 0.18s var(--ease);
 }
-.nav-link:hover { background: rgba(255, 255, 255, 0.13); color: #fff; text-decoration: none; }
-.nav-link.active { background: rgba(255, 255, 255, 0.2); color: var(--nav-text-active); font-weight: 620; }
+.nav-link:hover { background: var(--nav-hover-bg); color: var(--nav-text-active); text-decoration: none; }
+.nav-link.active { background: var(--primary-soft); color: var(--nav-text-active); font-weight: 620; }
 .nav-spacer { flex: 1; }
 .nav-portal {
   padding: 4px 11px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  background: var(--primary-soft);
+  color: var(--yale-blue);
   font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.07em;
@@ -93,7 +96,7 @@
   cursor: pointer; font-size: 18px;
   transition: background 0.18s var(--ease), transform 0.18s var(--ease);
 }
-.nav-icon-btn:hover { background: rgba(255, 255, 255, 0.14); color: #fff; transform: scale(1.08); }
+.nav-icon-btn:hover { background: var(--nav-hover-bg); color: var(--nav-text-active); transform: scale(1.08); }
 .nav-count {
   min-width: 21px; height: 21px; padding: 0 6px;
   display: inline-grid; place-items: center;
@@ -109,11 +112,11 @@
   display: flex; align-items: center; gap: 9px;
   padding: 5px 13px 5px 5px;
   border: 0; border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.13);
-  color: #fff; cursor: pointer; font-size: 15px;
+  background: var(--nav-hover-bg);
+  color: var(--nav-text-active); cursor: pointer; font-size: 15px;
   transition: background 0.18s var(--ease);
 }
-.usermenu-btn:hover { background: rgba(255, 255, 255, 0.22); }
+.usermenu-btn:hover { background: var(--primary-soft); }
 .usermenu-panel {
   position: absolute; right: 0; top: calc(100% + 10px);
   min-width: 290px; padding: 9px;
@@ -230,6 +233,11 @@ a.card:hover, .card.interactive:hover {
 
 /* Yale CAS sign-in button */
 .btn-cas { background: var(--yale-blue); border-color: var(--yale-blue); color: #fff; font-weight: 620; }
+/* The landing's three-way split: sign in, learn more, look around. */
+.btn-dark { background: #34435a; border-color: #34435a; color: #fff; font-weight: 620; }
+.btn-dark:hover { background: #283549; border-color: #283549; }
+.btn-guest { background: #2f8f6b; border-color: #2f8f6b; color: #fff; font-weight: 620; }
+.btn-guest:hover { background: #27795b; border-color: #27795b; }
 .btn-cas:hover { background: #002a56; border-color: #002a56; box-shadow: var(--shadow-glow); }
 .btn-cas .mark {
   display: grid; place-items: center;
@@ -395,6 +403,69 @@ a.tag:hover { background: var(--sky); color: var(--text); transform: translateY(
 }
 .search-input:hover { border-color: var(--sky-deep); }
 .search-input:focus { border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 4px var(--focus-ring); }
+
+/* ------------------------------------------------- catalog table (D-026)
+   CourseTable's actual catalog is a dense sortable grid, not a card list.
+   Numeric cells are tinted on the green→yellow→red scale so a column can be
+   read as a shape before any individual number is. */
+.results-count {
+  padding: 9px 16px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+.table-scroll { overflow-x: auto; }
+
+.club-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.club-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-strong);
+  text-align: left;
+  font-size: 12.5px;
+  font-weight: 660;
+  color: var(--text-muted);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.club-table th.sortable { cursor: pointer; user-select: none; transition: color 0.15s var(--ease); }
+.club-table th.sortable:hover { color: var(--primary); }
+.club-table th.active { color: var(--primary); }
+.club-table th.num, .club-table td.num { text-align: right; }
+.sort-arrow { margin-left: 5px; opacity: 0.45; font-size: 11px; }
+.club-table th.active .sort-arrow { opacity: 1; }
+
+.club-table tbody tr {
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.14s var(--ease);
+}
+.club-table tbody tr:hover { background: var(--sky-soft); }
+.club-table tbody tr.selected { background: var(--primary-soft); }
+.club-table tbody tr.selected .c-name .n { color: var(--yale-blue); }
+.club-table td { padding: 9px 12px; vertical-align: middle; }
+
+.club-table td.c-logo { width: 42px; padding-right: 0; }
+.club-table td.c-name { min-width: 210px; }
+.club-table td.c-name .n { font-weight: 600; color: var(--text); }
+.club-table td.c-cat, .club-table td.c-meets {
+  font-size: 13px; color: var(--text-muted); white-space: nowrap;
+}
+
+/* Tinted numeric cells. Kept as flat washes rather than the chip's pill so a
+   whole column scans as one block of colour. */
+.club-table td.num { font-variant-numeric: tabular-nums; font-weight: 620; width: 84px; }
+.club-table td.cell-good { background: var(--good-bg); color: var(--good); }
+.club-table td.cell-mid  { background: var(--mid-bg);  color: var(--mid); }
+.club-table td.cell-bad  { background: var(--bad-bg);  color: var(--bad); }
+.club-table td.cell-flat { color: var(--text-muted); font-weight: 560; }
 
 .club-row {
   display: flex; align-items: center; gap: 16px;
@@ -682,7 +753,10 @@ a.tag:hover { background: var(--sky); color: var(--text); transform: translateY(
 .wiz-head {
   display: flex; align-items: center; gap: 12px;
   padding: 16px 20px;
-  background: var(--nav-bg); color: #fff;
+  /* Its own gradient rather than --nav-bg: the nav went light (D-025) and a
+     floating assistant panel still wants a solid branded header. */
+  background: linear-gradient(100deg, #00356b 0%, #14508f 55%, #2d6cc0 100%);
+  color: #fff;
 }
 .wiz-head .t { font-weight: 700; font-size: 16px; }
 .wiz-head .s { font-size: 12.5px; opacity: 0.78; }
@@ -752,28 +826,58 @@ a.tag:hover { background: var(--sky); color: var(--text); transform: translateY(
 }
 .eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
 
+/* Two columns: copy left, illustration right — CourseTable's landing shape. */
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 56px;
+  max-width: 1180px;
+  margin: 0 auto;
+  text-align: left;
+}
+.hero-copy { min-width: 0; }
+
 .hero h1 {
-  font-size: clamp(40px, 6.2vw, 68px);
-  letter-spacing: -0.04em; line-height: 1.03;
+  font-size: clamp(36px, 4.6vw, 58px);
+  font-weight: 760;
+  letter-spacing: -0.035em; line-height: 1.06;
   animation: rise 0.6s var(--ease) both; animation-delay: 0.06s;
 }
 .hero h1 .accent {
   background: linear-gradient(120deg, var(--primary), #6ea9e8 55%, #9b8fe0);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.hero p {
-  max-width: 620px; margin: 26px auto 0;
-  font-size: 19px; line-height: 1.6; color: var(--text-muted);
+
+.hero-points {
+  list-style: none; margin: 30px 0 0; padding: 0;
   animation: rise 0.6s var(--ease) both; animation-delay: 0.12s;
 }
+.hero-points li {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 7px 0;
+  font-size: 17.5px; color: var(--text-muted);
+}
+.hero-points li span { flex: none; font-size: 18px; }
+.hero-points li b { color: var(--primary); font-weight: 660; }
+
 .hero-actions {
-  display: flex; justify-content: center; flex-wrap: wrap; gap: 14px;
-  margin-top: 40px;
+  display: flex; flex-wrap: wrap; gap: 12px;
+  margin-top: 36px;
   animation: rise 0.6s var(--ease) both; animation-delay: 0.18s;
 }
 .hero-meta {
-  margin-top: 34px; font-size: 14.5px; color: var(--text-faint);
+  margin-top: 26px; font-size: 14.5px; color: var(--text-faint);
   animation: rise 0.6s var(--ease) both; animation-delay: 0.24s;
+}
+.hero-art {
+  width: 100%; height: auto; max-height: 340px;
+  animation: rise 0.7s var(--ease) both; animation-delay: 0.2s;
+}
+
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 34px; }
+  .hero-art { max-height: 240px; order: -1; }
 }
 
 .portal-cards {

@@ -78,7 +78,7 @@ export default function Login() {
           </div>
         )}
 
-        <div className="divider">or use a YaleClubs password</div>
+        <div className="divider">or use a ClubTable password</div>
 
         <div className="field">
           <label htmlFor="email">Yale email</label>

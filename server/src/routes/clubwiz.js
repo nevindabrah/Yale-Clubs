@@ -34,7 +34,7 @@ function anthropic() {
 }
 
 function systemPrompt(user, portal) {
-  return `You are ClubWiz, the assistant built into YaleClubs — a catalog of Yale undergraduate
+  return `You are ClubWiz, the assistant built into ClubTable — a catalog of Yale undergraduate
 organizations with a student portal and a separate officer portal.
 
 You are talking to ${user.full_name}, signed in to the ${portal} portal${

@@ -1,5 +1,5 @@
 /**
- * Seeds the YaleClubs database.
+ * Seeds the ClubTable database.
  *
  * Everything here is demo data. Club names/descriptions are real Yale
  * organizations (see clubs.data.js and DECISIONS.md D-005); people, meeting
@@ -13,7 +13,7 @@ const bcrypt = require('bcryptjs');
 const mysql = require('mysql2/promise');
 const { CLUBS } = require('./clubs.data');
 
-const DEMO_PASSWORD = 'yaleclubs123';
+const DEMO_PASSWORD = 'clubtable123';
 
 // Deterministic PRNG so re-seeding produces the same database.
 let seedState = 20260813;
@@ -152,7 +152,7 @@ async function main() {
     database: process.env.DB_NAME || 'yaleclubs',
   });
 
-  console.log('Seeding YaleClubs…');
+  console.log('Seeding ClubTable…');
 
   // Every demo account shares one password, so hash it once.
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);

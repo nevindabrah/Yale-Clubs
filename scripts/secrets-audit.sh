@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Repeatable secrets audit for YaleClubs (see DECISIONS.md D-023).
+# Repeatable secrets audit for ClubTable (see DECISIONS.md D-023).
 #
 # Answers one question: could a credential reach anyone but me?
 #
@@ -19,7 +19,7 @@ problems=0
 # the placeholder text a .example file is supposed to contain.
 PATTERNS='sk-ant-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|xox[baprs]-[A-Za-z0-9-]{10,}'
 
-echo "YaleClubs secrets audit"
+echo "ClubTable secrets audit"
 echo "${DIM}reports paths and counts only — never the secret itself${OFF}"
 echo
 

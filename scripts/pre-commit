@@ -1,5 +1,5 @@
 #!/bin/sh
-# YaleClubs pre-commit guard (see DECISIONS.md D-023).
+# ClubTable pre-commit guard (see DECISIONS.md D-023).
 #
 # .gitignore is a convenience, not a control — `git add -f` walks straight
 # through it. This hook is the actual barrier: it refuses the commit if a

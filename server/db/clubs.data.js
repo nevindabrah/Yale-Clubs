@@ -1,5 +1,5 @@
 /**
- * YaleClubs — seed catalog of real Yale undergraduate organizations.
+ * ClubTable — seed catalog of real Yale undergraduate organizations.
  *
  * SEE DECISIONS.md D-005.
  *   - `name`, `acronym`, `category`, `founded_year` and `description` describe

@@ -60,7 +60,7 @@ check('application submitted', applied.status === 201, JSON.stringify(applied.da
 const missing = await call(`/student/clubs/${ydn.id}/apply`, { token: stu, method: 'POST', body: { answers: {} } });
 check('duplicate application blocked', missing.status === 409);
 
-const off = (await call('/auth/login', { method: 'POST', body: { account_type: 'officer', email: 'officer@yale.edu', password: 'yaleclubs123' } })).data.token;
+const off = (await call('/auth/login', { method: 'POST', body: { account_type: 'officer', email: 'officer@yale.edu', password: 'clubtable123' } })).data.token;
 const queue = await call(`/officer/clubs/${ydn.id}/applications?status=submitted`, { token: off });
 const mine = queue.data.applications.find((a) => a.email === EMAIL);
 check('application appears in the officer queue', Boolean(mine));
@@ -79,7 +79,7 @@ check('internal note is NOT exposed to the student', !JSON.stringify(studentView
 console.log('\n5. Cross-portal authorization');
 check('student token blocked from officer routes', (await call('/officer/clubs', { token: stu })).status === 403);
 check('officer token blocked from student routes', (await call('/student/dashboard', { token: off })).status === 403);
-const otherOfficer = (await call('/auth/login', { method: 'POST', body: { account_type: 'officer', email: 'avery.chen@yale.edu', password: 'yaleclubs123' } })).data.token;
+const otherOfficer = (await call('/auth/login', { method: 'POST', body: { account_type: 'officer', email: 'avery.chen@yale.edu', password: 'clubtable123' } })).data.token;
 check('officer cannot read another club\'s applications', (await call(`/officer/clubs/${ydn.id}/applications`, { token: otherOfficer })).status === 403);
 check('officer cannot decide on another club\'s application', (await call(`/officer/applications/${mine.id}`, { token: otherOfficer, method: 'PATCH', body: { status: 'rejected' } })).status === 403);
 

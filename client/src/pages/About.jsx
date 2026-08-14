@@ -5,7 +5,7 @@ export default function About() {
     <div className="page" style={{ maxWidth: 720 }}>
       <div className="page-head">
         <div>
-          <h1>About YaleClubs</h1>
+          <h1>About ClubTable</h1>
           <p>A club catalog built in the spirit of CourseTable.</p>
         </div>
       </div>

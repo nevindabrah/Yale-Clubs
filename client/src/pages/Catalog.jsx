@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { get, qs } from '../api';
 import ClubDetail from '../components/ClubDetail';
-import { Chip, ClubLogo, Empty, Tag, band } from '../components/ui';
+import { ClubLogo, Empty, Tag, band } from '../components/ui';
 
 const SORTS = [
   ['name', 'Name'],
@@ -12,6 +12,41 @@ const SORTS = [
   ['selectivity', 'Selectivity'],
   ['newest', 'Newest'],
 ];
+
+/* CourseTable puts a straight face on a joke next to the result count
+   ("faster than the Silliman elevator"). Ours is fixed rather than random so
+   the page does not reshuffle its own copy on every keystroke. */
+const QUIP = '(sorted faster than a suite meeting)';
+
+/** A clickable column header. Sorting is server-side — the header just picks
+ *  which `sort` key the query uses, so it reuses the existing API exactly. */
+function SortHead({ col, sort, onSort, num = false, children }) {
+  const active = sort === col;
+  return (
+    <th
+      className={`sortable${num ? ' num' : ''}${active ? ' active' : ''}`}
+      onClick={() => onSort(col)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onSort(col)}
+      aria-sort={active ? 'ascending' : 'none'}
+    >
+      {children}
+      <span className="sort-arrow" aria-hidden="true">{active ? '↓' : '⇅'}</span>
+    </th>
+  );
+}
+
+/** A numeric cell tinted on the green→yellow→red scale — CourseTable's most
+ *  recognisable signature, applied to the cell rather than a floating chip. */
+function NumCell({ value, decimals, tone }) {
+  const cls = tone || band(value);
+  const n = Number(value);
+  const shown = value == null || value === '' || !Number.isFinite(n)
+    ? '—'
+    : n.toFixed(decimals ?? (Number.isInteger(n) ? 0 : 1));
+  return <td className={`num cell-${cls}`}>{shown}</td>;
+}
 
 export default function Catalog() {
   const [params, setParams] = useSearchParams();
@@ -175,8 +210,9 @@ export default function Catalog() {
           </select>
         </div>
 
-        <div className="row small muted" style={{ padding: '7px 14px' }}>
-          {loading ? 'Searching…' : `${total} club${total === 1 ? '' : 's'}`}
+        <div className="results-count">
+          {loading ? 'Searching…' : `Showing ${total} club${total === 1 ? '' : 's'}`}
+          <span className="faint"> {QUIP}</span>
           {selected && (
             <button className="btn btn-ghost btn-sm right" onClick={() => setSelected(null)}>
               Close detail
@@ -190,47 +226,61 @@ export default function Catalog() {
           </Empty>
         )}
 
-        {clubs.map((club) => (
-          <div
-            key={club.id}
-            className={`club-row${selected === club.slug ? ' selected' : ''}`}
-            onClick={() => setSelected(club.slug)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === 'Enter' && setSelected(club.slug)}
-          >
-            <ClubLogo club={club} size="md" />
-            <div className="main">
-              <div className="name">
-                {club.name}
-                {club.acronym && club.acronym !== club.name && (
-                  <span className="faint" style={{ fontWeight: 500 }}> · {club.acronym}</span>
-                )}
-              </div>
-              <div className="sub">
-                {club.category}
-                {club.meeting_day ? ` · ${club.meeting_day}s ${club.meeting_time || ''}` : ''}
-              </div>
-            </div>
-            <div className="row" style={{ gap: 5, flex: 'none' }}>
-              {club.application_required ? (
-                club.applications_open ? <Tag tone="tag-mid">Apply</Tag> : <Tag>Closed</Tag>
-              ) : (
-                <Tag tone="tag-good">Open</Tag>
-              )}
-            </div>
-            <div className="chips">
-              <Chip value={club.rating} label="rating" decimals={1} />
-              <Chip
-                value={club.commitment_hours}
-                label="hrs/wk"
-                decimals={1}
-                tone={`chip-${band(Number(club.commitment_hours), { good: 8, mid: 5, invert: true })}`}
-              />
-              <Chip value={club.member_count} label="members" decimals={0} tone="chip-flat" />
-            </div>
+        {clubs.length > 0 && (
+          <div className="table-scroll">
+            <table className="club-table">
+              <thead>
+                <tr>
+                  <th className="c-logo" />
+                  <SortHead col="name" sort={sort} onSort={setSort}>Club</SortHead>
+                  <th className="c-cat">Category</th>
+                  <SortHead col="rating" sort={sort} onSort={setSort} num>Rating</SortHead>
+                  <SortHead col="commitment" sort={sort} onSort={setSort} num>Hrs/wk</SortHead>
+                  <SortHead col="size" sort={sort} onSort={setSort} num>Members</SortHead>
+                  <SortHead col="selectivity" sort={sort} onSort={setSort}>Join</SortHead>
+                  <th className="c-meets">Meets</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clubs.map((club) => (
+                  <tr
+                    key={club.id}
+                    className={selected === club.slug ? 'selected' : ''}
+                    onClick={() => setSelected(club.slug)}
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && setSelected(club.slug)}
+                  >
+                    <td className="c-logo"><ClubLogo club={club} size="sm" /></td>
+                    <td className="c-name">
+                      <span className="n">{club.name}</span>
+                      {club.acronym && club.acronym !== club.name && (
+                        <span className="faint"> · {club.acronym}</span>
+                      )}
+                    </td>
+                    <td className="c-cat">{club.category}</td>
+                    <NumCell value={club.rating} decimals={1} />
+                    <NumCell
+                      value={club.commitment_hours}
+                      decimals={1}
+                      tone={band(Number(club.commitment_hours), { good: 8, mid: 5, invert: true })}
+                    />
+                    <NumCell value={club.member_count} decimals={0} tone="flat" />
+                    <td>
+                      {club.application_required ? (
+                        club.applications_open ? <Tag tone="tag-mid">Apply</Tag> : <Tag>Closed</Tag>
+                      ) : (
+                        <Tag tone="tag-good">Open</Tag>
+                      )}
+                    </td>
+                    <td className="c-meets faint">
+                      {club.meeting_day ? `${club.meeting_day} ${club.meeting_time || ''}` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
+        )}
       </section>
 
       {/* ----------------------------------------------------- detail */}

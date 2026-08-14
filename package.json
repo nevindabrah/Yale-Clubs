@@ -1,8 +1,8 @@
 {
-  "name": "yaleclubs",
+  "name": "clubtable",
   "version": "1.0.0",
   "private": true,
-  "description": "YaleClubs — a two-portal club catalog for Yale, in the spirit of CourseTable",
+  "description": "ClubTable — a two-portal club catalog for Yale, in the spirit of CourseTable",
   "scripts": {
     "setup": "npm run hooks:install && npm --prefix server install && npm --prefix client install",
     "hooks:install": "git config core.hooksPath scripts",

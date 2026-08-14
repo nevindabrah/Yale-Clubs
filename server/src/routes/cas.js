@@ -107,7 +107,7 @@ router.get('/mock', (req, res) => {
 </style></head>
 <body><form class="box" method="GET" action="/api/auth/cas/callback">
   <h1>Yale Central Authentication Service</h1>
-  <p class="small">Signing in to <strong>YaleClubs</strong> — ${portal} portal</p>
+  <p class="small">Signing in to <strong>ClubTable</strong> — ${portal} portal</p>
   <div class="warn"><strong>Development stand-in.</strong> This is not Yale CAS. It exists so the
   CAS handshake can be tested before Yale ITS registers this service. Set
   <code>CAS_MODE=yale</code> to use the real one.</div>

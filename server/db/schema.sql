@@ -1,5 +1,5 @@
 -- =====================================================================
--- YaleClubs — MySQL 8 schema
+-- ClubTable — MySQL 8 schema
 -- Decisions: D-002 (separate accounts), D-008 (application questions),
 --            D-009 (thread-per-club), D-010 (open vs. application clubs)
 -- =====================================================================

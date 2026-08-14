@@ -1,5 +1,5 @@
 /* =====================================================================
-   YaleClubs design tokens.
+   ClubTable design tokens.
 
    A soft pastel-blue system: Yale blue is kept for identity (the brand
    mark, the nav) while the working surface sits on tinted blues with
@@ -42,11 +42,13 @@
   --link: #2364b8;
   --focus-ring: color-mix(in srgb, var(--primary) 32%, transparent);
 
-  /* Nav */
-  --nav-bg: linear-gradient(100deg, #00356b 0%, #14508f 55%, #2d6cc0 100%);
-  --nav-text: #d3e4f7;
-  --nav-text-active: #ffffff;
-  --nav-border: rgba(255, 255, 255, 0.14);
+  /* Nav — light bar with dark text, as CourseTable does it. The brand colour
+     lives in the wordmark and the active link, not in a slab of navy. */
+  --nav-bg: rgba(255, 255, 255, 0.92);
+  --nav-text: #46586e;
+  --nav-text-active: var(--yale-blue);
+  --nav-border: #e2ecf7;
+  --nav-hover-bg: #f0f6fd;
 
   /* Semantic */
   --good: #1c8b56;
@@ -74,6 +76,8 @@
   --nav-h: 66px;
   --ease: cubic-bezier(0.22, 0.85, 0.3, 1);
   --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  /* Reserved for the wordmark only — the brand's one serif moment. */
+  --font-serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
   --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 }
 
@@ -101,9 +105,11 @@
   --link: #7fb5f5;
   --focus-ring: color-mix(in srgb, var(--primary) 38%, transparent);
 
-  --nav-bg: linear-gradient(100deg, #08131f 0%, #12263e 60%, #1b3a5e 100%);
-  --nav-text: #b6cbe3;
-  --nav-border: rgba(255, 255, 255, 0.08);
+  --nav-bg: rgba(19, 31, 46, 0.92);
+  --nav-text: #a8bed6;
+  --nav-text-active: #ffffff;
+  --nav-border: #24374e;
+  --nav-hover-bg: #1e2f44;
 
   --mint: #1c3d31;
   --lilac: #2b2547;

@@ -1,8 +1,8 @@
 {
-  "name": "yaleclubs-server",
+  "name": "clubtable-server",
   "version": "1.0.0",
   "private": true,
-  "description": "YaleClubs API — Express + MySQL",
+  "description": "ClubTable API — Express + MySQL",
   "main": "src/index.js",
   "scripts": {
     "dev": "node --watch src/index.js",

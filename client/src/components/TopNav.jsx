@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { get } from '../api';
 import { Avatar } from './ui';
+import Logo from './Logo';
 
 function useTheme() {
   const [theme, setTheme] = useState(
@@ -10,7 +11,7 @@ function useTheme() {
   );
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('yc-theme', theme);
+    localStorage.setItem('ct-theme', theme);
   }, [theme]);
   return [theme, () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))];
 }
@@ -50,9 +51,12 @@ export default function TopNav() {
 
   return (
     <nav className="nav">
-      <Link to={isOfficer ? '/officer' : isStudent ? '/dashboard' : '/catalog'} className="nav-brand">
-        <span className="nav-mark">Y</span>
-        YaleClubs
+      <Link
+        to={isOfficer ? '/officer' : isStudent ? '/dashboard' : '/catalog'}
+        className="nav-brand"
+        aria-label="ClubTable home"
+      >
+        <Logo size={30} />
       </Link>
 
       {isStudent && (

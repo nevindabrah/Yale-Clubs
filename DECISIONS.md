@@ -1,6 +1,6 @@
-# DECISIONS.md — YaleClubs
+# DECISIONS.md — ClubTable
 
-A running log of every decision and action taken while building YaleClubs.
+A running log of every decision and action taken while building ClubTable.
 Newest entries at the bottom. Each entry: **what**, **why**, and **files touched**.
 
 Format:
@@ -203,6 +203,42 @@ Format:
 - **Verified:** Force-adding `server/.env` is blocked; a planted `sk-ant-…` string in a source file is blocked at file:line; ordinary commits pass; the audit exits 0 with no remote configured and nothing secrets-shaped in any commit.
 - **Files:** `.gitignore`, `scripts/pre-commit`, `scripts/secrets-audit.sh`, `package.json`, `server/.env` (permissions only)
 
+### [D-024] The product is ClubTable; the plumbing keeps its old name
+- **Date:** 2026-08-14
+- **Type:** process
+- **Decision:** The product is renamed **YaleClubs → ClubTable**. The rename covers everything a person sees or types: page titles, the wordmark, copy, README, npm package names (`clubtable`, `clubtable-server`, `clubtable-client`), the `ct-` prefix on `localStorage` keys, and the demo password (`clubtable123`). It deliberately does **not** cover three physical identifiers, which stay `yaleclubs`: the **MySQL database name**, the **local repository directory**, and the **Docker container/volume names**.
+- **Rationale:** "ClubTable" names the product's relationship to CourseTable far better than "YaleClubs" — the two apps are siblings, and the shared `-Table` suffix says so in one word. But the database name is not product identity, it is a connection string. Renaming it would require editing `server/.env`, which a standing rule forbids me from opening (see D-023 and the reporting rule there), and would force a full re-seed of 128 clubs and ~900 students to change a value no user ever sees. The line is: **rename what is read, not what is wired.**
+- **Note on `.env.example`:** The committed template was checked for the brand token via `sed` without the file ever being opened or displayed. It turned out to contain only the lowercase `yaleclubs` database name, so it correctly needed no change.
+- **Trade-off:** A developer will see `DB_NAME=yaleclubs` in a ClubTable repo. Accepted, and documented in the README, because the alternative is a rename that can silently break a working database.
+- **Files:** 21 source and doc files; `package.json` ×3, `server/db/seed.js`, `server/test/e2e.mjs`, `README.md`
+- **Verified:** Full re-seed and 55/55 e2e checks pass against the unchanged database name.
+
+### [D-025] Light navigation bar and a two-tone serif wordmark
+- **Date:** 2026-08-14
+- **Type:** ui
+- **Decision:** Replaced the dark navy gradient nav (D-004, D-019) with a **light, translucent, blurred bar** carrying dark text — and replaced the placeholder `Y` tile with a real lockup: a badge showing **three people seated around a round table**, beside the wordmark **"Club" in a serif, "Table" in blue**.
+- **Rationale:** Reference screenshots of CourseTable's current interface show the nav is white with dark text, and its wordmark is exactly this two-tone serif/blue split. That split is the single most recognisable thing about the brand, and reproducing the *pattern* — not the assets — is the clearest way to say "sister app." The navy slab was also fighting the pastel page background it sat on: the brand colour now lives in the wordmark and the active link, which is where it carries meaning. The mark draws the product name literally, and is rotationally symmetric so it survives being rendered at 16px in a browser tab.
+- **Consequences handled:** Three rules assumed a dark nav and would have rendered white-on-white — `.nav-link:hover`, `.usermenu-btn`, and the ClubWiz panel header, which was borrowing `--nav-bg`. The first two moved to a new `--nav-hover-bg` token; ClubWiz got its own gradient, since a floating assistant panel still wants a solid branded header.
+- **Alternatives considered:** Keeping the navy bar and only swapping the mark (rejected — the wordmark's dark serif is illegible on navy, which is the whole point of the light bar). Using a webfont for the serif (rejected — a network font request for six characters; the system serif stack renders this well and costs nothing).
+- **Files:** `client/src/components/Logo.jsx`, `client/public/favicon.svg`, `client/src/components/TopNav.jsx`, `client/src/styles/theme.css`, `client/src/styles/app.css`
+
+### [D-026] The catalog is a dense sortable table
+- **Date:** 2026-08-14
+- **Type:** ui
+- **Decision:** The catalog's middle pane is now a **table** — sticky sortable headers, one club per row, and **numeric cells tinted directly** on the green→yellow→red scale (rating, hours/week, members) rather than floating chips. Column headers drive the existing server-side `sort` keys, so no new API surface was needed. The landing page was rebuilt to CourseTable's shape: headline left, emoji-led feature list, three buttons (CAS / About / Guest), illustration right.
+- **Rationale:** D-004 described CourseTable's catalog as a three-pane browse with card-ish rows, and D-015 then deliberately loosened the density because "picking a club is a reading task." The screenshots correct both: CourseTable's catalog is a genuine spreadsheet, and the colour lives *in the cells*, which is what lets you read a whole column as a shape before reading any single number. A table also scales better here — 128 clubs across seven attributes is exactly the comparison a table is for. The three-pane frame and the detail pane are unchanged, so the reading task D-015 protected still happens on the right-hand side.
+- **On the testimonial wall:** CourseTable's landing carries a grid of real user quotes. **Not reproduced** — inventing praise for an app nobody has used yet would be fabricating evidence, which is the same line D-005 drew about seed data. The space went to the feature list instead.
+- **Files:** `client/src/pages/Catalog.jsx`, `client/src/pages/Landing.jsx`, `client/src/styles/app.css`
+
+### [D-027] Adopting an 8-month-old repository that was leaking credentials
+- **Date:** 2026-08-14
+- **Type:** security / process
+- **Decision:** The existing public repository `nevindabrah/Yale-Clubs` is the publish target. Its history and this project's history share **no common ancestor**, so rather than force-push over it: the old `main` is preserved as a branch **`legacy-2025`**, and `main` becomes the ClubTable build. Before anything was pushed, `legacy-2025` was **rewritten** to purge `owner_credentials.txt`, `backend/yale_clubs.db`, and 4,785 committed `node_modules` files from **all six commits**.
+- **What was found:** The repository was public — verified by fetching it with authentication explicitly disabled. At the HEAD of `main` sat `owner_credentials.txt` (618 bytes, 16 lines, matching `password` and 14 `@` symbols), added 2025-12-05 by a commit titled "add owner credentials." Also committed: a 48 KB SQLite database containing **15 bcrypt hashes and 28 `@yale.edu` addresses**, and no `.gitignore` whatsoever — 4,785 of 4,819 tracked files were dependencies.
+- **Rationale:** Purging is necessary but **not sufficient** — anything public for eight months must be assumed scraped, forked and indexed, so the credentials themselves must be rotated regardless of what the history now says. The archive branch exists because destroying eight months of someone's work to fix a leak is a worse trade than keeping a cleaned copy of it. `git filter-branch` was used rather than `git filter-repo` because the latter is not installed and there is no Homebrew on this machine; for six commits the deprecated built-in is entirely adequate.
+- **Result:** `legacy-2025` went from **4,819 tracked files to 32**, with all six commits preserved and zero occurrences of any purged path in any commit.
+- **Files:** repository history; no working-tree files
+
 ---
 
 ## Action log
@@ -234,4 +270,8 @@ Chronological record of build actions (as opposed to design decisions).
 | A-021 | 2026-08-13 | ClubWiz surfaced that the demo student was "committed to 140 hrs/week" — grew the seeded student body 162 → 900 so rosters aggregate sensibly (D-021). Average is now 4.8 clubs per student. |
 | A-022 | 2026-08-13 | Extended the e2e suite from 35 to **55 checks** — dashboard payload, ClubWiz across six question types and both portals, and the full CAS handshake including NetID validation and the no-password-login guarantee. All passing. |
 | A-023 | 2026-08-14 | **Secrets audit and hardening (D-023).** Audited exposure without opening any secrets file — filename, count and permission checks only. Result: **no remote is configured**, so nothing has ever been published anywhere; `server/.env.example` is the only env-shaped file ever committed and it contains no real-credential pattern; `server/.env` has never been in any commit on any branch. Then hardened: widened `.gitignore`, `chmod 600 server/.env`, added the `pre-commit` guard and `npm run secrets:audit`. Audit passes 6/6. |
+| A-024 | 2026-08-14 | Renamed the product to **ClubTable** across 21 files (D-024); re-seeded and re-ran the suite to confirm the untouched database name still resolves. |
+| A-025 | 2026-08-14 | Finished the brand: three-people-around-a-table mark, two-tone serif wordmark, light nav bar, and the three white-on-white regressions that change caused (D-025). Closed the logo work left unwired from A-020. |
+| A-026 | 2026-08-14 | Rebuilt the catalog as a dense sortable table with tinted numeric cells, and the landing page to CourseTable's two-column shape (D-026). |
+| A-027 | 2026-08-14 | Audited the 8-month-old public `Yale-Clubs` repo, found a live credentials file plus a user database at HEAD, and purged both from all six commits into a clean `legacy-2025` archive branch — 4,819 files → 32 (D-027). |
 </content>

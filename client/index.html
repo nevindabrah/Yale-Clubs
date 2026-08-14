@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>YaleClubs — find your people at Yale</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <meta name="theme-color" content="#00356b" />
+    <title>ClubTable — find your people at Yale</title>
     <meta
       name="description"
       content="Browse every Yale undergraduate organization, apply, and manage your club — a sister app to CourseTable."
@@ -11,7 +14,7 @@
     <script>
       // Apply the saved theme before first paint so there is no flash.
       (function () {
-        var t = localStorage.getItem('yc-theme');
+        var t = localStorage.getItem('ct-theme');
         if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', t);
       })();

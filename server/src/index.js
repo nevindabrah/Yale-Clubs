@@ -81,7 +81,7 @@ app.use((err, _req, res, _next) => {
 
 const PORT = Number(process.env.PORT || 4000);
 app.listen(PORT, () => {
-  console.log(`YaleClubs API listening on http://localhost:${PORT}`);
+  console.log(`ClubTable API listening on http://localhost:${PORT}`);
   console.log(`  ClubWiz: ${process.env.ANTHROPIC_API_KEY ? 'live (Claude API)' : 'offline (no ANTHROPIC_API_KEY)'}`);
   console.log(`  Yale CAS: ${process.env.CAS_MODE || 'mock'} mode`);
 });

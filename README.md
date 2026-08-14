@@ -1,8 +1,14 @@
-# YaleClubs
+# ClubTable
 
 A two-portal club catalog for Yale — browse and join every undergraduate organization, or run
 yours. Built as a sister app to [CourseTable](https://coursetable.com): same three-pane browsing,
-same dense listing rows, same colored stat chips, same light/dark toggle.
+same dense sortable table with colour-tinted numeric cells, same two-tone serif wordmark, same
+light/dark toggle.
+
+> **Note on names.** The product is **ClubTable**. Three physical identifiers deliberately keep
+> the project's original `yaleclubs` name — the MySQL **database**, the local **directory**, and
+> the Docker container/volume. Those are connection strings, not branding; renaming them would
+> break a working database for no user-visible gain. See DECISIONS.md **D-024**.
 
 **Stack:** React 18 + Vite · Express · MySQL 8 (raw SQL via `mysql2`, no ORM)
 
@@ -54,8 +60,8 @@ Try it: `avery.chen@yale.edu` exists in both portals, with independent sessions.
 ## Quick start
 
 ```bash
-git clone https://github.com/nevindabrah/yaleclubs.git
-cd yaleclubs
+git clone https://github.com/nevindabrah/ClubTable.git
+cd ClubTable
 
 npm run setup          # installs client + server dependencies
 cp server/.env.example server/.env
@@ -71,7 +77,7 @@ Open **http://localhost:5173**.
 
 ### Demo accounts
 
-Password for all three: `yaleclubs123`
+Password for all three: `clubtable123`
 
 | Account | Portal | What you'll see |
 |---|---|---|
@@ -114,7 +120,7 @@ password-sign-in).
 ## Project layout
 
 ```
-yaleclubs/
+ClubTable/
 ├── DECISIONS.md            every design decision, with rationale — read this first
 ├── client/
 │   └── src/
