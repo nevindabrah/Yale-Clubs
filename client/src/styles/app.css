@@ -284,10 +284,13 @@ a.tag:hover { background: var(--sky); color: var(--text); transform: translateY(
 .chip-bad { background: var(--bad-bg); color: var(--bad); }
 .chip-flat { background: var(--neutral-bg); color: var(--text-muted); }
 
-/* club identity square, colored by the club's hue */
+/* Club identity square: a real logo when the club supplied one, otherwise a
+   generated crest (gradient + geometric device + monogram). See D-028. */
 .logo {
+  position: relative;
   flex: none;
   display: grid; place-items: center;
+  overflow: hidden;
   border-radius: var(--radius);
   font-weight: 750;
   letter-spacing: -0.03em;
@@ -295,10 +298,39 @@ a.tag:hover { background: var(--sky); color: var(--text); transform: translateY(
   box-shadow: var(--shadow-sm);
   transition: transform 0.22s var(--ease);
 }
-.club-row:hover .logo, a.card:hover .logo { transform: scale(1.06) rotate(-3deg); }
+.logo-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.logo-text { position: relative; z-index: 1; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.28); }
+
+/* A real logo is artwork, not a tile: contain it and give it a light ground
+   so a transparent PNG does not vanish against a dark theme. */
+.logo-img {
+  object-fit: contain;
+  background: #fff;
+  padding: 4px;
+}
+
+.club-row:hover .logo, a.card:hover .logo,
+.club-table tbody tr:hover .logo { transform: scale(1.06) rotate(-3deg); }
 .logo-sm { width: 36px; height: 36px; font-size: 13px; border-radius: 11px; }
 .logo-md { width: 48px; height: 48px; font-size: 16px; }
 .logo-lg { width: 72px; height: 72px; font-size: 24px; border-radius: var(--radius-lg); }
+
+/* ------------------------------------------------- club detail banner */
+.detail-banner {
+  position: relative;
+  height: 128px;
+  margin: calc(-1 * var(--pad, 18px)) calc(-1 * var(--pad, 18px)) 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.detail-banner img { width: 100%; height: 100%; object-fit: cover; }
+.detail-banner svg { width: 100%; height: 100%; display: block; }
+/* Keeps the club name legible over any banner, generated or uploaded. */
+.detail-banner::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, var(--surface));
+}
 
 .avatar {
   flex: none;

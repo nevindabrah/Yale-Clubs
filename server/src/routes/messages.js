@@ -13,7 +13,7 @@ router.use(requireAuth);
 /** Confirms the signed-in user may see this thread; returns the thread. */
 async function loadThread(user, threadId) {
   const thread = await one(
-    `SELECT t.*, c.name AS club_name, c.slug AS club_slug, c.logo_hue,
+    `SELECT t.*, c.name AS club_name, c.slug AS club_slug, c.logo_hue, c.logo_url,
             u.full_name AS student_name, u.class_year AS student_class_year,
             u.email AS student_email, u.avatar_hue AS student_hue
        FROM message_threads t
@@ -41,7 +41,7 @@ router.get('/threads', async (req, res) => {
   const threads = await q(
     isStudent
       ? `SELECT t.id, t.subject, t.last_message_at, t.club_id,
-                c.name AS club_name, c.slug AS club_slug, c.logo_hue,
+                c.name AS club_name, c.slug AS club_slug, c.logo_hue, c.logo_url,
                 (SELECT msg.body FROM messages msg WHERE msg.thread_id = t.id
                   ORDER BY msg.sent_at DESC LIMIT 1) AS preview,
                 (SELECT COUNT(*) FROM messages msg WHERE msg.thread_id = t.id
@@ -50,7 +50,7 @@ router.get('/threads', async (req, res) => {
           WHERE t.student_user_id = ?
           ORDER BY t.last_message_at DESC`
       : `SELECT t.id, t.subject, t.last_message_at, t.club_id,
-                c.name AS club_name, c.slug AS club_slug, c.logo_hue,
+                c.name AS club_name, c.slug AS club_slug, c.logo_hue, c.logo_url,
                 u.full_name AS student_name, u.class_year AS student_class_year,
                 u.avatar_hue AS student_hue,
                 (SELECT msg.body FROM messages msg WHERE msg.thread_id = t.id

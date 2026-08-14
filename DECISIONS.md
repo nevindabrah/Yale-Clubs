@@ -239,6 +239,23 @@ Format:
 - **Result:** `legacy-2025` went from **4,819 tracked files to 32**, with all six commits preserved and zero occurrences of any purged path in any commit.
 - **Files:** repository history; no working-tree files
 
+### [D-028] Club imagery: generated crests now, real logos by permission
+- **Date:** 2026-08-14
+- **Type:** ui / data
+- **Decision:** Clubs gain `logo_url`, `banner_url` and `logo_attribution` columns, all nullable and all **empty in the seed**. When a club has supplied its own artwork the app renders it; otherwise it draws a **generated crest** — a gradient derived from the club's hue, one of six geometric devices chosen by a stable hash of the slug, and the monogram on top — plus a matching generated banner across the top of the club's overview page. The app was **not** populated with the clubs' real logos.
+- **Rationale:** Real logos would be better, and the request for them is reasonable — but they are the organisations' own trademarked artwork. Obtaining them means scraping Yale Connect or the clubs' sites, which D-005 already declined for the catalog data, and republishing them in a public repository is redistributing someone else's IP without a licence. Hotlinking instead would leak referrer traffic to 128 third parties, break silently as sites move, and still be redistribution. The columns exist so that a club that *wants* its logo shown can have it in one `UPDATE`, with `logo_attribution` recording who granted it — that is the honest path from here to real logos, and it is one row of SQL per club rather than a scraper.
+- **Why generated crests rather than plain initials:** the old mark was a flat hue square with two letters, so 128 clubs produced 128 near-identical tiles and the logo carried no recognition value in a dense table. A hue gradient plus a per-club geometric device makes them tellable apart peripherally, before the monogram is read. The device is chosen by hash, so a club's crest never changes between renders or machines.
+- **Alternatives considered:** Fetching favicons from club websites (rejected — same redistribution problem, plus most Yale clubs have no site). AI-generated per-club logos (rejected — they would look like real logos while being invented, which is exactly the confusion D-005 exists to prevent).
+- **Files:** `server/db/schema.sql`, `server/src/routes/{clubs,student,messages,auth,officer}.js`, `client/src/components/ui.jsx`, `client/src/components/ClubDetail.jsx`, `client/src/styles/app.css`
+
+### [D-029] The demo password is asserted, not restated
+- **Date:** 2026-08-14
+- **Type:** process
+- **Decision:** `client/src/pages/Login.jsx` exports `DEMO_PASSWORD`, and the e2e suite **reads that constant back out of the client source** and asserts it actually signs both demo accounts in.
+- **Rationale:** The D-024 rename updated the demo password in the seed, the tests and the README — and missed the login page, which then confidently advertised and auto-filled a password the database had stopped accepting. Every existing test passed, because the tests carried their own copy of the password. A check that restated the password here would drift in exactly the same way; reading the client's own constant is the only version that couples the two files. The bug was found by a user trying to log in, which is the worst place to find it.
+- **Lesson recorded:** A value duplicated across a seed, a UI and a test is not covered by tests that hardcode it — the test and the code drift together only if one of them reads the other.
+- **Files:** `client/src/pages/Login.jsx`, `server/test/e2e.mjs`
+
 ---
 
 ## Action log
@@ -274,4 +291,6 @@ Chronological record of build actions (as opposed to design decisions).
 | A-025 | 2026-08-14 | Finished the brand: three-people-around-a-table mark, two-tone serif wordmark, light nav bar, and the three white-on-white regressions that change caused (D-025). Closed the logo work left unwired from A-020. |
 | A-026 | 2026-08-14 | Rebuilt the catalog as a dense sortable table with tinted numeric cells, and the landing page to CourseTable's two-column shape (D-026). |
 | A-027 | 2026-08-14 | Audited the 8-month-old public `Yale-Clubs` repo, found a live credentials file plus a user database at HEAD, and purged both from all six commits into a clean `legacy-2025` archive branch — 4,819 files → 32 (D-027). |
+| A-028 | 2026-08-14 | Fixed the demo sign-in: the login page still advertised and auto-filled the pre-rename password, so both demo accounts failed for a user while every test passed. Added a check that reads the client's own constant and asserts it signs in (D-029). Suite is now **58 checks**. |
+| A-029 | 2026-08-14 | Added club imagery (D-028): `logo_url`/`banner_url`/`logo_attribution` columns, generated per-club crests replacing flat initial tiles, and a generated banner on the club overview. Real logos deliberately not scraped. |
 </content>

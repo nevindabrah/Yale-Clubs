@@ -187,7 +187,7 @@ router.get('/:slug', async (req, res) => {
   }
 
   const similar = await q(
-    `SELECT slug, name, acronym, category, tagline, logo_hue, rating
+    `SELECT slug, name, acronym, category, tagline, logo_hue, logo_url, rating
        FROM clubs
       WHERE category = ? AND id <> ? AND is_active = 1
       ORDER BY rating DESC LIMIT 6`,

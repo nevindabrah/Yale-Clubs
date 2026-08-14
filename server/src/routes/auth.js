@@ -118,7 +118,7 @@ router.get('/me', requireAuth, async (req, res) => {
   const payload = { user: publicUser(req.user) };
   if (req.user.account_type === 'officer') {
     payload.managed_clubs = await q(
-      `SELECT c.id, c.slug, c.name, c.acronym, c.logo_hue, co.title, co.is_primary
+      `SELECT c.id, c.slug, c.name, c.acronym, c.logo_hue, c.logo_url, co.title, co.is_primary
          FROM club_officers co
          JOIN clubs c ON c.id = co.club_id
         WHERE co.user_id = ?

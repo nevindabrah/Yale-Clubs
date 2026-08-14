@@ -10,7 +10,7 @@ const DECISION_STATUSES = ['submitted', 'under_review', 'interview', 'accepted',
 /** GET /api/officer/clubs — clubs this officer account manages, with counters. */
 router.get('/clubs', async (req, res) => {
   const clubs = await q(
-    `SELECT c.id, c.slug, c.name, c.acronym, c.category, c.logo_hue,
+    `SELECT c.id, c.slug, c.name, c.acronym, c.category, c.logo_hue, c.logo_url,
             c.application_required, c.applications_open, c.application_deadline,
             c.accepting_members, co.title, co.is_primary,
             (SELECT COUNT(*) FROM memberships m

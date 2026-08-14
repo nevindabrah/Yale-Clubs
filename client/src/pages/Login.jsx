@@ -3,6 +3,17 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { get } from '../api';
 import { useAuth } from '../context/AuthContext';
 
+/**
+ * Must match DEMO_PASSWORD in `server/db/seed.js`.
+ *
+ * These two drifted once already: the D-024 rename updated the seed, the tests
+ * and the README but not this file, so the login page confidently handed out a
+ * password the database no longer accepted. `server/test/e2e.mjs` now reads
+ * this constant back out of the source and asserts it actually signs in, so the
+ * next drift fails a test instead of a user.
+ */
+export const DEMO_PASSWORD = 'clubtable123';
+
 export default function Login() {
   const [params] = useSearchParams();
   const { login } = useAuth();
@@ -38,7 +49,7 @@ export default function Login() {
   function useDemo(kind) {
     setPortal(kind === 'officer' ? 'officer' : 'student');
     setEmail(kind === 'officer' ? 'officer@yale.edu' : 'student@yale.edu');
-    setPassword('yaleclubs123');
+    setPassword(DEMO_PASSWORD);
   }
 
   return (
@@ -119,7 +130,7 @@ export default function Login() {
       </form>
 
       <div className="demo-box">
-        <strong>Demo accounts</strong> — password <code>yaleclubs123</code>
+        <strong>Demo accounts</strong> — password <code>{DEMO_PASSWORD}</code>
         <div className="row" style={{ marginTop: 8, gap: 6 }}>
           <button className="btn btn-sm" type="button" onClick={() => useDemo('student')}>
             student@yale.edu

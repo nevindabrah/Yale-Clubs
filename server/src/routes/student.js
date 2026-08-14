@@ -12,7 +12,7 @@ router.get('/dashboard', async (req, res) => {
   const memberships = await q(
     `SELECT m.id, m.role, m.status, m.joined_at,
             c.id AS club_id, c.slug, c.name, c.acronym, c.category,
-            c.logo_hue, c.meeting_day, c.meeting_time, c.meeting_location,
+            c.logo_hue, c.logo_url, c.meeting_day, c.meeting_time, c.meeting_location,
             c.commitment_hours
        FROM memberships m JOIN clubs c ON c.id = m.club_id
       WHERE m.user_id = ? AND m.status = 'active'
@@ -22,7 +22,7 @@ router.get('/dashboard', async (req, res) => {
 
   const applications = await q(
     `SELECT a.id, a.status, a.submitted_at, a.decided_at, a.decision_note,
-            c.slug, c.name, c.acronym, c.logo_hue, c.category
+            c.slug, c.name, c.acronym, c.logo_hue, c.logo_url, c.category
        FROM applications a JOIN clubs c ON c.id = a.club_id
       WHERE a.user_id = ?
       ORDER BY FIELD(a.status,'interview','under_review','submitted','accepted','rejected','withdrawn'),
@@ -32,7 +32,7 @@ router.get('/dashboard', async (req, res) => {
 
   const upcoming = await q(
     `SELECT e.id, e.title, e.event_type, e.starts_at, e.ends_at, e.location, e.visibility,
-            c.slug, c.name AS club_name, c.logo_hue,
+            c.slug, c.name AS club_name, c.logo_hue, c.logo_url,
             (SELECT r.status FROM event_rsvps r WHERE r.event_id = e.id AND r.user_id = ?) AS my_rsvp
        FROM events e
        JOIN clubs c ON c.id = e.club_id
@@ -44,7 +44,7 @@ router.get('/dashboard', async (req, res) => {
   );
 
   const bookmarks = await q(
-    `SELECT c.id, c.slug, c.name, c.acronym, c.category, c.logo_hue, c.rating,
+    `SELECT c.id, c.slug, c.name, c.acronym, c.category, c.logo_hue, c.logo_url, c.rating,
             c.application_required, c.applications_open, c.application_deadline
        FROM bookmarks b JOIN clubs c ON c.id = b.club_id
       WHERE b.user_id = ?
@@ -53,7 +53,7 @@ router.get('/dashboard', async (req, res) => {
   );
 
   const announcements = await q(
-    `SELECT a.id, a.title, a.body, a.posted_at, c.name AS club_name, c.slug, c.logo_hue
+    `SELECT a.id, a.title, a.body, a.posted_at, c.name AS club_name, c.slug, c.logo_hue, c.logo_url
        FROM announcements a
        JOIN clubs c ON c.id = a.club_id
        JOIN memberships m ON m.club_id = c.id AND m.user_id = ? AND m.status = 'active'
@@ -73,7 +73,7 @@ router.get('/dashboard', async (req, res) => {
   // Application deadlines worth acting on: clubs they saved or already applied
   // to, plus anything still open in a category they have shown interest in.
   const deadlines = await q(
-    `SELECT DISTINCT c.id, c.slug, c.name, c.acronym, c.logo_hue, c.category,
+    `SELECT DISTINCT c.id, c.slug, c.name, c.acronym, c.logo_hue, c.logo_url, c.category,
             c.application_deadline, c.selectivity,
             (b.id IS NOT NULL) AS is_saved,
             (a.id IS NOT NULL) AS has_applied
@@ -95,7 +95,7 @@ router.get('/dashboard', async (req, res) => {
 
   // Clubs in categories they already engage with, that they have not joined.
   const recommended = await q(
-    `SELECT c.id, c.slug, c.name, c.acronym, c.category, c.tagline, c.logo_hue,
+    `SELECT c.id, c.slug, c.name, c.acronym, c.category, c.tagline, c.logo_hue, c.logo_url,
             c.rating, c.commitment_hours, c.application_required, c.applications_open,
             (SELECT COUNT(*) FROM memberships m2
               WHERE m2.club_id = c.id AND m2.status = 'active') AS member_count
@@ -123,7 +123,7 @@ router.get('/calendar', async (req, res) => {
   const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 180);
   const rows = await q(
     `SELECT e.id, e.title, e.description, e.event_type, e.starts_at, e.ends_at,
-            e.location, e.visibility, c.slug, c.name AS club_name, c.logo_hue,
+            e.location, e.visibility, c.slug, c.name AS club_name, c.logo_hue, c.logo_url,
             (SELECT r.status FROM event_rsvps r WHERE r.event_id = e.id AND r.user_id = ?) AS my_rsvp
        FROM events e
        JOIN clubs c ON c.id = e.club_id
@@ -258,7 +258,7 @@ router.post('/clubs/:clubId/apply', async (req, res) => {
 router.get('/applications/:id', async (req, res) => {
   const app = await one(
     `SELECT a.id, a.status, a.submitted_at, a.decided_at, a.decision_note,
-            c.name AS club_name, c.slug, c.logo_hue
+            c.name AS club_name, c.slug, c.logo_hue, c.logo_url
        FROM applications a JOIN clubs c ON c.id = a.club_id
       WHERE a.id = ? AND a.user_id = ?`,
     [Number(req.params.id), req.user.id]

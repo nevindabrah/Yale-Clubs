@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { del, get, post } from '../api';
 import { useAuth } from '../context/AuthContext';
 import {
-  Chip, ClubLogo, Empty, Loading, Modal, StatusTag, Tag,
+  Chip, ClubBanner, ClubLogo, Empty, Loading, Modal, StatusTag, Tag,
   Avatar, band, formatDate, formatDateTime, useToast,
 } from './ui';
 
@@ -87,6 +87,7 @@ export default function ClubDetail({ slug, onClose }) {
 
   return (
     <>
+      <ClubBanner club={club} />
       <div className="detail-head">
         <div className="row" style={{ alignItems: 'flex-start', gap: 12 }}>
           <ClubLogo club={club} size="lg" />

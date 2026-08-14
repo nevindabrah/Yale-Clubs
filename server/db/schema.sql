@@ -81,6 +81,12 @@ CREATE TABLE clubs (
   selectivity          DECIMAL(3,1) DEFAULT NULL,  -- 1.0 (open) .. 5.0 (very selective)
   rating               DECIMAL(3,1) DEFAULT NULL,  -- 1.0 .. 5.0 member satisfaction
   logo_hue             SMALLINT     NOT NULL DEFAULT 210,
+  -- A club's own artwork, supplied by that club. NULL is the normal state and
+  -- the app draws a generated crest instead; these are never populated by
+  -- scraping someone's logo off the web. See DECISIONS.md D-028.
+  logo_url             VARCHAR(500) DEFAULT NULL,
+  banner_url           VARCHAR(500) DEFAULT NULL,
+  logo_attribution     VARCHAR(255) DEFAULT NULL,  -- who provided it / licence
   is_active            TINYINT(1)   NOT NULL DEFAULT 1,
   created_at           TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

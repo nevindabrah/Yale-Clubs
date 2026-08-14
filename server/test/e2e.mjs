@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 const BASE = 'http://localhost:4000/api';
 let failures = 0;
 
@@ -161,6 +162,27 @@ check('CAS account cannot be password-signed-in',
   (await call('/auth/login', { method: 'POST', body: { account_type: 'student', email: `${netid}@yale.edu`, password: 'cas-sso-no-password' } })).status === 401);
 const casBad = await fetch(`${BASE}/auth/cas/callback?portal=student&ticket=ST-mock&mock_netid=not-a-netid`, { redirect: 'manual' });
 check('callback rejects a malformed NetID', /error=/.test(casBad.headers.get('location') || ''));
+
+/* ---------------------------------------------------------------------------
+   11. The demo credentials the UI advertises must actually work.
+
+   The login page hardcodes a password and also fills it into the form for the
+   one-click demo buttons. During the D-024 rename that constant was missed
+   while the seed, the tests and the README all moved — so the page handed out
+   a password the database had stopped accepting, and nothing failed.
+
+   Reading the constant back out of the client source is deliberately crude,
+   but it is the only thing that couples the two files: any check that restates
+   the password here would drift in exactly the same way.                    */
+console.log('\n11. Demo credentials advertised by the UI');
+const loginSrc = await readFile(new URL('../../client/src/pages/Login.jsx', import.meta.url), 'utf8');
+const advertised = loginSrc.match(/export const DEMO_PASSWORD = '([^']+)'/)?.[1];
+check('login page exports a demo password', Boolean(advertised), '(constant not found — did it get renamed?)');
+
+for (const [portal, email] of [['student', 'student@yale.edu'], ['officer', 'officer@yale.edu']]) {
+  const r = await call('/auth/login', { method: 'POST', body: { account_type: portal, email, password: advertised } });
+  check(`${email} signs in with the advertised password`, r.status === 200, JSON.stringify(r.data));
+}
 
 console.log(failures === 0 ? '\n✓ all checks passed\n' : `\n✗ ${failures} check(s) failed\n`);
 process.exit(failures === 0 ? 0 : 1);

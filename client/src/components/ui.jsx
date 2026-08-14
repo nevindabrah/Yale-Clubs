@@ -89,14 +89,114 @@ export const STATUS_TONE = {
 
 /* --------------------------------------------------------- components */
 
+/** Stable small hash — same club always gets the same crest. */
+function hashString(str = '') {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+/* Six background devices. Flat initials made 128 clubs look like 128 of the
+   same tile; a deterministic device per club makes them tellable apart at a
+   glance in a dense table without anyone having to read the monogram. */
+const CRESTS = [
+  (c) => <circle cx="32" cy="32" r="21" fill="none" stroke={c} strokeWidth="7" />,
+  (c) => <path d="M0 44 L32 20 L64 44 V64 H0 Z" fill={c} />,
+  (c) => <g fill={c}><circle cx="16" cy="16" r="9" /><circle cx="48" cy="48" r="9" /></g>,
+  (c) => <path d="M32 2 L62 32 L32 62 L2 32 Z" fill="none" stroke={c} strokeWidth="8" />,
+  (c) => <g fill={c}><rect x="0" y="34" width="64" height="10" /><rect x="0" y="50" width="64" height="10" /></g>,
+  (c) => <path d="M-4 52 Q 16 26 32 46 T 68 40 V68 H-4 Z" fill={c} />,
+];
+
+/**
+ * A club's mark.
+ *
+ * If the club has supplied a real `logo_url` — its own artwork, with its own
+ * permission — that wins. Otherwise we draw a generated crest: a hue-derived
+ * gradient, one of six geometric devices chosen by a stable hash of the slug,
+ * and the monogram on top. See DECISIONS.md D-028 for why we do not go and
+ * fetch the real ones.
+ */
 export function ClubLogo({ club, size = 'md' }) {
+  const label = clubInitials(club);
+
+  if (club.logo_url) {
+    return (
+      <img
+        className={`logo logo-${size} logo-img`}
+        src={club.logo_url}
+        alt={`${club.name || 'Club'} logo`}
+        loading="lazy"
+      />
+    );
+  }
+
+  const hue = club.logo_hue ?? 212;
+  const seed = hashString(club.slug || club.name || '');
+  const Crest = CRESTS[seed % CRESTS.length];
+  const gid = `cl-${hue}-${seed % CRESTS.length}`;
+
   return (
-    <div
-      className={`logo logo-${size}`}
-      style={{ background: hueColor(club.logo_hue) }}
-      aria-hidden="true"
-    >
-      {clubInitials(club)}
+    <div className={`logo logo-${size}`} title={club.name} aria-hidden="true">
+      <svg viewBox="0 0 64 64" className="logo-svg" focusable="false">
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={hueColor(hue, 58, 46)} />
+            <stop offset="100%" stopColor={hueColor((hue + 26) % 360, 62, 34)} />
+          </linearGradient>
+        </defs>
+        <rect width="64" height="64" fill={`url(#${gid})`} />
+        <g opacity="0.26">{Crest('#ffffff')}</g>
+      </svg>
+      <span className="logo-text">{label}</span>
+    </div>
+  );
+}
+
+/**
+ * The wide header image on a club's overview. Uses the club's own `banner_url`
+ * when it has one; otherwise draws a generated field — a hue-derived wash with
+ * a scatter of soft shapes seeded from the slug, so every club's page opens
+ * with something of its own rather than a grey bar.
+ */
+export function ClubBanner({ club }) {
+  if (club.banner_url) {
+    return (
+      <div className="detail-banner">
+        <img src={club.banner_url} alt="" loading="lazy" />
+      </div>
+    );
+  }
+
+  const hue = club.logo_hue ?? 212;
+  const seed = hashString(club.slug || club.name || '');
+  const gid = `bn-${seed % 997}`;
+
+  // Deterministic scatter — same club, same composition, every render.
+  const shapes = Array.from({ length: 7 }, (_, i) => {
+    const s = hashString(`${club.slug}-${i}`);
+    return {
+      cx: (s % 100) + i * 4,
+      cy: (s >> 3) % 60,
+      r: 12 + ((s >> 6) % 26),
+      o: 0.08 + ((s >> 9) % 12) / 100,
+    };
+  });
+
+  return (
+    <div className="detail-banner">
+      <svg viewBox="0 0 140 64" preserveAspectRatio="none" focusable="false" aria-hidden="true">
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={hueColor(hue, 52, 52)} />
+            <stop offset="100%" stopColor={hueColor((hue + 34) % 360, 58, 36)} />
+          </linearGradient>
+        </defs>
+        <rect width="140" height="64" fill={`url(#${gid})`} />
+        {shapes.map((s, i) => (
+          <circle key={i} cx={s.cx} cy={s.cy} r={s.r} fill="#fff" opacity={s.o} />
+        ))}
+      </svg>
     </div>
   );
 }
