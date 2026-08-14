@@ -21,3 +21,30 @@ npm-debug.log*
 
 # macOS
 .DS_Store
+
+# ---- secrets hardening (D-023) ----
+# Broad env coverage: every variant, at any depth, in one rule.
+.env
+.env.*
+!.env.example
+!*.env.example
+
+# Keys, certificates, and credential dumps
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa*
+id_ed25519*
+secrets.json
+credentials.json
+service-account*.json
+
+# Tool-local credential caches
+.npmrc
+.netrc
+.anthropic
+.aws/
+.ssh/

@@ -192,6 +192,17 @@ Format:
 - **Rationale:** Login brute-forcing and an unbounded LLM endpoint were the two open holes flagged in `docs/SECURITY-NOTES.md`. The dev multiplier exists because the strict registration budget would otherwise lock the end-to-end suite out after three runs — limits nobody can develop against get deleted, so they are scaled rather than skipped.
 - **Files:** `server/src/index.js`, `docs/SECURITY-NOTES.md`
 
+### [D-023] Secrets are guarded at the commit boundary, not by convention
+- **Date:** 2026-08-14
+- **Type:** security / process
+- **Decision:** Four layers, in order of how much they can be trusted: (1) `.gitignore` widened from the single `.env` line to cover `.env.*` at any depth, `*.pem`/`*.key`/`*.p12`/`*.pfx`, `id_rsa*`, `secrets.json`, `credentials.json`, `service-account*.json`, and the tool-local credential caches `.npmrc`/`.netrc`/`.aws`/`.ssh` — with an explicit `!.env.example` negation so the committed template survives. (2) `server/.env` permissions tightened from `644` to `600`. (3) `scripts/pre-commit`, installed via `core.hooksPath`, refuses any commit that stages a secrets-shaped path or that contains a live-credential string. (4) `npm run secrets:audit` re-checks the whole picture — remotes, tracked files, **full history across all branches**, tracked content, local file permissions, and whether the guard is installed.
+- **Rationale:** `.gitignore` is a convenience, not a control — `git add -f` walks straight through it, and the file that leaks is usually the one someone force-added "just this once." The hook is the actual barrier because it sits at the only moment that matters: the transition from working tree to permanent history. The audit exists separately because `.gitignore` and the hook both only protect the *future*; only a history scan answers "did this already happen." Checking history across all branches rather than just `HEAD` matters because deleting a file does not remove it from the commits that contained it.
+- **Reporting rule:** Every one of these tools prints **paths, line numbers and match counts — never the matched value**. An audit that echoes the key it found has re-leaked it into terminal scrollback, CI logs, or a chat transcript. This constraint is the reason the scripts use `grep -l` and `-c` rather than plain `grep` throughout.
+- **Alternatives considered:** `git-secrets` or `gitleaks` (rejected — both are external installs, and the pattern set that actually matters here is six regexes; a dependency whose job is to be present on every machine is worse than a 60-line shell script that is committed with the repo). A `pre-push` hook instead of `pre-commit` (rejected — by push time the secret is already in local history, so the cleanup is a rewrite instead of an unstage).
+- **Trade-off:** `core.hooksPath` is local git config and is *not* carried by a clone, so the hook is inert until someone runs `npm run setup` or `npm run hooks:install`. Wiring it into `setup` covers the normal path; the audit's check [6] catches the case where it was skipped.
+- **Verified:** Force-adding `server/.env` is blocked; a planted `sk-ant-…` string in a source file is blocked at file:line; ordinary commits pass; the audit exits 0 with no remote configured and nothing secrets-shaped in any commit.
+- **Files:** `.gitignore`, `scripts/pre-commit`, `scripts/secrets-audit.sh`, `package.json`, `server/.env` (permissions only)
+
 ---
 
 ## Action log
@@ -222,4 +233,5 @@ Chronological record of build actions (as opposed to design decisions).
 | A-020 | 2026-08-13 | Redesigned the visual system to pastel blue with large radii and interaction motion (D-019); rebuilt the landing page with far more breathing room (D-020). |
 | A-021 | 2026-08-13 | ClubWiz surfaced that the demo student was "committed to 140 hrs/week" — grew the seeded student body 162 → 900 so rosters aggregate sensibly (D-021). Average is now 4.8 clubs per student. |
 | A-022 | 2026-08-13 | Extended the e2e suite from 35 to **55 checks** — dashboard payload, ClubWiz across six question types and both portals, and the full CAS handshake including NetID validation and the no-password-login guarantee. All passing. |
+| A-023 | 2026-08-14 | **Secrets audit and hardening (D-023).** Audited exposure without opening any secrets file — filename, count and permission checks only. Result: **no remote is configured**, so nothing has ever been published anywhere; `server/.env.example` is the only env-shaped file ever committed and it contains no real-credential pattern; `server/.env` has never been in any commit on any branch. Then hardened: widened `.gitignore`, `chmod 600 server/.env`, added the `pre-commit` guard and `npm run secrets:audit`. Audit passes 6/6. |
 </content>

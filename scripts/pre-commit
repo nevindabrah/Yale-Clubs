@@ -1,0 +1,68 @@
+#!/bin/sh
+# YaleClubs pre-commit guard (see DECISIONS.md D-023).
+#
+# .gitignore is a convenience, not a control — `git add -f` walks straight
+# through it. This hook is the actual barrier: it refuses the commit if a
+# secrets-shaped path is staged, or if any staged file contains something
+# that looks like a live credential.
+#
+# It never prints the matched value, only the file and line number, so a
+# leaked key is not re-leaked into your terminal scrollback or CI logs.
+#
+# Install: npm run hooks:install   (or: git config core.hooksPath scripts)
+# Bypass (deliberate, rare): git commit --no-verify
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+fail=0
+
+# ---- 1. Paths that must never be committed ---------------------------------
+for f in $staged; do
+  case "$f" in
+    *.example|*.sample|*.template) continue ;;
+  esac
+  case "$f" in
+    .env|.env.*|*/.env|*/.env.*|\
+    *.pem|*.key|*.p12|*.pfx|*.keystore|*.jks|\
+    *id_rsa*|*id_ed25519*|\
+    secrets.json|*/secrets.json|credentials.json|*/credentials.json|\
+    *service-account*.json|.npmrc|*/.npmrc|.netrc|*/.netrc)
+      echo "BLOCKED  secrets-shaped path staged: $f"
+      fail=1
+      ;;
+  esac
+done
+
+# ---- 2. Live-credential shapes inside any staged file ----------------------
+# Reported as file:line only. Placeholders in *.example are skipped above and
+# the patterns below are deliberately tight enough not to fire on them.
+patterns='sk-ant-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|xox[baprs]-[A-Za-z0-9-]{10,}'
+
+for f in $staged; do
+  case "$f" in
+    *.example|*.sample|*.template|*.lock|package-lock.json) continue ;;
+  esac
+  [ -f "$f" ] || continue
+  hits=$(git show ":$f" 2>/dev/null | grep -nIaE "$patterns" | cut -d: -f1 | tr '\n' ',')
+  if [ -n "$hits" ]; then
+    echo "BLOCKED  credential-shaped string in $f at line(s): ${hits%,}"
+    fail=1
+  fi
+done
+
+if [ "$fail" -ne 0 ]; then
+  cat <<'MSG'
+
+Commit refused. Nothing was written to history.
+
+  - Unstage the file:      git restore --staged <file>
+  - Keep it local only:    it is already covered by .gitignore
+  - If this is a false positive and you are certain:
+                           git commit --no-verify
+
+MSG
+  exit 1
+fi
+
+exit 0

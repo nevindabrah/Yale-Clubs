@@ -4,7 +4,9 @@
   "private": true,
   "description": "YaleClubs — a two-portal club catalog for Yale, in the spirit of CourseTable",
   "scripts": {
-    "setup": "npm --prefix server install && npm --prefix client install",
+    "setup": "npm run hooks:install && npm --prefix server install && npm --prefix client install",
+    "hooks:install": "git config core.hooksPath scripts",
+    "secrets:audit": "bash scripts/secrets-audit.sh",
     "db:start": "bash scripts/db-start.sh",
     "db:stop": "bash scripts/db-stop.sh",
     "db:reset": "npm --prefix server run db:reset",
